@@ -17,17 +17,11 @@ $ go get github.com/tzmfreedom/spm
 Install Package
 
 ```bash
-$ spm install github.com/tzmfreedom/apex-util
-Enter Username: {USERNAME}
-Enter Password: {PASSWORD}
-Production/Developer?(y/n): y
+$ spm install github.com/tzmfreedom/apex-util -u {USERNAME} -p {PASSWORD}
 ```
 
 ```bash
 $ spm install -c package.yml
-Enter Username: {USERNAME}
-Enter Password: {PASSWORD}
-Production/Developer?(y/n): y
 ```
 
 Package.yml format

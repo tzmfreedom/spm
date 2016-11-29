@@ -2,48 +2,80 @@ package main
 
 import (
   "os"
+  "os/user"
   "path/filepath"
   "fmt"
   "io"
+  "io/ioutil"
+  "bytes"
+  "archive/zip"
+  . "./metadata"
+  "regexp"
+  "strings"
+  "encoding/base64"
 
+  "github.com/k0kubun/pp"
   "github.com/urfave/cli"
   "gopkg.in/src-d/go-git.v4"
 )
 
 type Config struct {
-  username string
-  password string
-  endpoint string
-  api_version string
+  Username string
+  Password string
+  Endpoint string
+  ApiVersion string
 }
 
 func main() {
+  config := Config{}
+
   app := cli.NewApp()
   app.Name = "spm"
+
   app.Usage = "salesforce package manager"
   app.Commands = []cli.Command{
     {
       Name:    "install",
       Aliases: []string{"i"},
       Usage:   "install salesforce package",
-      //Flags:   []cli.Flag {
-      //  cli.StringFlag{
-      //    Name: "lang, l",
-      //    Value: "english",
-      //    Usage: "language for the greeting",
-      //  },
-      //},
+      Flags: []cli.Flag{
+        cli.StringFlag{
+          Name: "username, u",
+          Destination: &config.Username,
+          EnvVar: "SF_USERNAME",
+        },
+        cli.StringFlag{
+          Name: "password, p",
+          Destination: &config.Password,
+          EnvVar: "SF_PASSWORD",
+        },
+        cli.StringFlag{
+          Name: "endpoint, e",
+          Value: "login.salesforce.com",
+          Destination: &config.Endpoint,
+          EnvVar: "SF_ENDPOINT",
+        },
+        cli.StringFlag{
+          Name: "apiversion",
+          Value: "38.0",
+          Destination: &config.ApiVersion,
+          EnvVar: "SF_APIVERSION",
+        },
+      },
       Action:  func(c *cli.Context) error {
-        var username string
-        var password string
-        fmt.Print("Enter Username: ")
-        fmt.Scanln(&username)
-        fmt.Printf("Enter Password: ")
-        fmt.Scanln(&password)
-        fmt.Printf("%q %q", username, password)
-        os.Exit(0)
-
-        install("https://" + c.Args().First(), nil)
+        url := c.Args().First()
+        install("https://" + url, config)
+        return nil
+      },
+    },
+    {
+      Name:    "init",
+      Usage:   "initialize",
+      Action:  func(c *cli.Context) error {
+        spmDir := getSpmDirectory()
+        if err := os.Mkdir(spmDir, 0777); err != nil {
+          fmt.Println(err)
+        }
         return nil
       },
     },
@@ -52,12 +84,30 @@ func main() {
   app.Run(os.Args)
 }
 
-func install(url string, options []string) {
-  cloneFromRemoteRepository(url, url, options)
-  deployToSalesforce(url, Config{})
+func install(url string, config Config) {
+  r := regexp.MustCompile(`github.com/(.*)/(.*)`)
+  group := r.FindAllStringSubmatch(url, -1)
+  directory := group[0][2]
+
+  cloneDir := getSpmDirectory() + "/" + directory
+  cloneFromRemoteRepository(cloneDir, url)
+  deployToSalesforce(cloneDir, config)
+  cleanTempDirectory(cloneDir)
 }
 
-func cloneFromRemoteRepository(directory string, url string, option []string) {
+func getSpmDirectory() (string) {
+  usr, _ := user.Current()
+  return usr.HomeDir + "/.spm"
+}
+
+func cleanTempDirectory(directory string) (error) {
+  if err := os.RemoveAll(directory); err != nil {
+    return err
+  }
+  return nil
+}
+
+func cloneFromRemoteRepository(directory string, url string) {
   r, err := git.NewFilesystemRepository(directory)
   err = r.Clone(&git.CloneOptions{
     URL: url,
@@ -103,6 +153,92 @@ func cloneFromRemoteRepository(directory string, url string, option []string) {
   })
 }
 
-func deployToSalesforce(directory string, config Config) {
+func find(targetDir string) ([]string, error) {
 
+  var paths []string
+  err := filepath.Walk(targetDir,
+    func(path string, info os.FileInfo, err error) error {
+      rel, err := filepath.Rel(targetDir, path)
+      if err != nil {
+        return err
+      }
+      if rel == "HEAD" {
+        return nil
+      }
+
+      if strings.HasPrefix(rel, "refs") {
+        return nil
+      }
+
+      if strings.HasPrefix(rel, "objects") {
+        return nil
+      }
+
+      if info.IsDir() {
+        paths = append(paths, fmt.Sprintf("%s/", rel))
+        return nil
+      }
+
+      paths = append(paths, rel)
+
+      return nil
+    })
+
+  if err != nil {
+    return nil, err
+  }
+
+  return paths, nil
+}
+
+func deployToSalesforce(directory string, config Config) (error) {
+  buf := new(bytes.Buffer)
+  zwriter := zip.NewWriter(buf)
+
+  files, err := find(directory)
+  if err != nil {
+    return err
+  }
+
+  for _, file := range files {
+    absPath, _ := filepath.Abs(directory + "/" + file)
+    info, _ := os.Stat(absPath)
+
+    f, err := zwriter.Create("src/" + file)
+
+    if info.IsDir() {
+      continue
+    }
+
+    body, err := ioutil.ReadFile(absPath)
+    if err != nil {
+      panic(err)
+    }
+    f.Write(body)
+  }
+
+  zwriter.Close()
+
+  portType := NewMetadataPortType("https://" + config.Endpoint + "/services/Soap/u/" + config.ApiVersion, true, nil)
+  loginRequest := LoginRequest{Username: config.Username, Password: config.Password }
+  loginResponse, _ := portType.Login(&loginRequest)
+  result := loginResponse.LoginResult
+
+  request := Deploy{
+    ZipFile: base64.StdEncoding.EncodeToString(buf.Bytes()),
+    DeployOptions: nil,
+  }
+  sessionHeader := SessionHeader{
+    SessionId: result.SessionId,
+  }
+  portType.SetHeader(&sessionHeader)
+  portType.SetServerUrl(result.MetadataServerUrl)
+
+  response, err := portType.Deploy(&request)
+  if err != nil {
+    panic(err)
+  }
+  pp.Print(response)
+
+  return nil
 }
