@@ -9,7 +9,6 @@ import (
   "io/ioutil"
   "bytes"
   "archive/zip"
-  . "./metadata"
   "regexp"
   "encoding/base64"
   "log"
