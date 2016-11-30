@@ -27,6 +27,11 @@ type Config struct {
   ApiVersion string
 }
 
+const (
+  DEFAULT_REPOSITORY string = "github.com"
+  DEFAULT_SPMDIRECTORY_NAME string = ".spm"
+)
+
 func main() {
   config := Config{}
 
@@ -65,6 +70,12 @@ func main() {
       },
       Action:  func(c *cli.Context) error {
         url := c.Args().First()
+        r := regexp.MustCompile(`^[^/]+/[^/]+$`)
+        if r.MatchString(url) {
+          url = DEFAULT_REPOSITORY + "/" + url
+        }
+        log.Println("Clone repository from " + url)
+
         install("https://" + url, config)
         return nil
       },
@@ -86,19 +97,19 @@ func main() {
 }
 
 func install(url string, config Config) {
-  r := regexp.MustCompile(`github.com/(.*)/(.*)`)
+  r := regexp.MustCompile(`^(.+?)/(.+?)/(.+?)$`)
   group := r.FindAllStringSubmatch(url, -1)
-  directory := group[0][2]
+  directory := group[0][3]
 
   cloneDir := getSpmDirectory() + "/" + directory
   cloneFromRemoteRepository(cloneDir, url)
-  deployToSalesforce(cloneDir, config)
+  deployToSalesforce(cloneDir + "/src", config)
   cleanTempDirectory(cloneDir)
 }
 
 func getSpmDirectory() (string) {
   usr, _ := user.Current()
-  return usr.HomeDir + "/.spm"
+  return usr.HomeDir + "/" + DEFAULT_SPMDIRECTORY_NAME
 }
 
 func cleanTempDirectory(directory string) (error) {
@@ -128,7 +139,7 @@ func cloneFromRemoteRepository(directory string, url string) {
 
   _, err = r.Head()
   err = files.ForEach(func(f *git.File) error {
-    abs := filepath.Join(directory, f.Name)
+    abs := filepath.Join(directory + "/src", f.Name)
     dir := filepath.Dir(abs)
 
     os.MkdirAll(dir, 0777)
@@ -162,17 +173,6 @@ func find(targetDir string) ([]string, error) {
       rel, err := filepath.Rel(targetDir, path)
       if err != nil {
         return err
-      }
-      if rel == "HEAD" {
-        return nil
-      }
-
-      if strings.HasPrefix(rel, "refs") {
-        return nil
-      }
-
-      if strings.HasPrefix(rel, "objects") {
-        return nil
       }
 
       if info.IsDir() {
