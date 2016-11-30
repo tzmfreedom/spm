@@ -11,10 +11,11 @@ import (
   "archive/zip"
   . "./metadata"
   "regexp"
-  "strings"
   "encoding/base64"
+  "log"
+  "time"
 
-  "github.com/k0kubun/pp"
+  _ "github.com/k0kubun/pp"
   "github.com/urfave/cli"
   "gopkg.in/src-d/go-git.v4"
 )
@@ -238,7 +239,20 @@ func deployToSalesforce(directory string, config Config) (error) {
   if err != nil {
     panic(err)
   }
-  pp.Print(response)
+  log.Println("Deploying...")
+  for {
+    time.Sleep(5000 * time.Millisecond)
+    log.Println("Check Deploy Result...")
+    check_request := CheckDeployStatus{AsyncProcessId: response.Result.Id, IncludeDetails: true}
+    check_response, err := portType.CheckDeployStatus(&check_request)
+    if err != nil {
+      panic(err)
+    }
+    if check_response.Result.Done {
+      log.Println("Deploy is successful")
+      break
+    }
+  }
 
   return nil
 }

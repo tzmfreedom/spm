@@ -4518,7 +4518,7 @@ type CancelDeployResult struct {
 }
 
 type DeployResult struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata DeployResult"`
+	//XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata DeployResult"`
 
 	CanceledBy string `xml:"canceledBy,omitempty"`
 
@@ -4574,7 +4574,7 @@ type DeployResult struct {
 }
 
 type DeployDetails struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata DeployDetails"`
+	//XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata DeployDetails"`
 
 	ComponentFailures []*DeployMessage `xml:"componentFailures,omitempty"`
 
@@ -4586,7 +4586,7 @@ type DeployDetails struct {
 }
 
 type DeployMessage struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata DeployMessage"`
+	//XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata DeployMessage"`
 
 	Changed bool `xml:"changed,omitempty"`
 
@@ -4616,7 +4616,7 @@ type DeployMessage struct {
 }
 
 type RetrieveResult struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata RetrieveResult"`
+	//XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata RetrieveResult"`
 
 	Done bool `xml:"done,omitempty"`
 
@@ -4674,7 +4674,7 @@ type RetrieveMessage struct {
 }
 
 type RunTestsResult struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata RunTestsResult"`
+	//XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata RunTestsResult"`
 
 	ApexLogId string `xml:"apexLogId,omitempty"`
 
@@ -12981,7 +12981,7 @@ func (service *MetadataPortType) CancelDeploy(request *CancelDeploy) (*CancelDep
 /* Check the current status of an asyncronous deploy call. */
 func (service *MetadataPortType) CheckDeployStatus(request *CheckDeployStatus) (*CheckDeployStatusResponse, error) {
 	response := new(CheckDeployStatusResponse)
-	err := service.client.Call("", request, response)
+	err := service.client.Call("''", request, response)
 	if err != nil {
 		return nil, err
 	}
@@ -13319,6 +13319,7 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		log.Println("empty response")
 		return nil
 	}
+	//log.Println(string(rawbody))
 
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}
