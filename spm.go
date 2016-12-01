@@ -94,6 +94,7 @@ func main() {
 }
 
 func install(url string, config Config) {
+  checkConfigration(config)
   r := regexp.MustCompile(`^(.+?)/(.+?)/(.+?)$`)
   group := r.FindAllStringSubmatch(url, -1)
   directory := group[0][3]
@@ -102,6 +103,15 @@ func install(url string, config Config) {
   cloneFromRemoteRepository(cloneDir, url)
   deployToSalesforce(cloneDir + "/src", config)
   cleanTempDirectory(cloneDir)
+}
+
+func checkConfigration(config Config) {
+  if config.Username == "" {
+    panic("Username is required")
+  }
+  if config.Password == "" {
+    panic("Password is required")
+  }
 }
 
 func getSpmDirectory() (string) {
