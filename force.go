@@ -43,7 +43,7 @@ func (client *ForceClient) DeployAndCheckResult(buf []byte, pollseconds int) (er
   }
   log.Println("Deploying...")
   for {
-    time.Sleep(5 * time.Second)
+    time.Sleep(time.Duration(pollseconds) * time.Second)
     log.Println("Check Deploy Result...")
     check_request := CheckDeployStatus{AsyncProcessId: response.Result.Id, IncludeDetails: true}
     check_response, err := client.portType.CheckDeployStatus(&check_request)

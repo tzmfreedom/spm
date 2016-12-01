@@ -22,6 +22,7 @@ type Config struct {
   Password string
   Endpoint string
   ApiVersion string
+  PollSeconds int
 }
 
 const (
@@ -63,6 +64,12 @@ func main() {
           Value: "38.0",
           Destination: &config.ApiVersion,
           EnvVar: "SF_APIVERSION",
+        },
+        cli.IntFlag {
+          Name: "pollSeconds",
+          Value: 5,
+          Destination: &config.PollSeconds,
+          EnvVar: "SF_POLLSECONDS",
         },
       },
       Action:  func(c *cli.Context) error {
