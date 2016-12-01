@@ -10,9 +10,7 @@ import (
   "bytes"
   "archive/zip"
   "regexp"
-  "encoding/base64"
   "log"
-  "time"
 
   _ "github.com/k0kubun/pp"
   "github.com/urfave/cli"
@@ -165,7 +163,6 @@ func cloneFromRemoteRepository(directory string, url string) {
 }
 
 func find(targetDir string) ([]string, error) {
-
   var paths []string
   err := filepath.Walk(targetDir,
     func(path string, info os.FileInfo, err error) error {
@@ -191,13 +188,13 @@ func find(targetDir string) ([]string, error) {
   return paths, nil
 }
 
-func deployToSalesforce(directory string, config Config) (error) {
+func zipDirectory(directory string) (*bytes.Buffer, error){
   buf := new(bytes.Buffer)
   zwriter := zip.NewWriter(buf)
 
   files, err := find(directory)
   if err != nil {
-    return err
+    return nil, err
   }
 
   for _, file := range files {
@@ -212,45 +209,31 @@ func deployToSalesforce(directory string, config Config) (error) {
 
     body, err := ioutil.ReadFile(absPath)
     if err != nil {
-      panic(err)
+      return nil, err
     }
     f.Write(body)
   }
 
   zwriter.Close()
+  return buf, nil
+}
 
-  portType := NewMetadataPortType("https://" + config.Endpoint + "/services/Soap/u/" + config.ApiVersion, true, nil)
-  loginRequest := LoginRequest{Username: config.Username, Password: config.Password }
-  loginResponse, _ := portType.Login(&loginRequest)
-  result := loginResponse.LoginResult
 
-  request := Deploy{
-    ZipFile: base64.StdEncoding.EncodeToString(buf.Bytes()),
-    DeployOptions: nil,
-  }
-  sessionHeader := SessionHeader{
-    SessionId: result.SessionId,
-  }
-  portType.SetHeader(&sessionHeader)
-  portType.SetServerUrl(result.MetadataServerUrl)
-
-  response, err := portType.Deploy(&request)
+func deployToSalesforce(directory string, config Config) (error) {
+  client := NewForceClient(config.Endpoint, config.ApiVersion)
+  err := client.Login(config.Username, config.Password)
   if err != nil {
     panic(err)
   }
-  log.Println("Deploying...")
-  for {
-    time.Sleep(5000 * time.Millisecond)
-    log.Println("Check Deploy Result...")
-    check_request := CheckDeployStatus{AsyncProcessId: response.Result.Id, IncludeDetails: true}
-    check_response, err := portType.CheckDeployStatus(&check_request)
-    if err != nil {
-      panic(err)
-    }
-    if check_response.Result.Done {
-      log.Println("Deploy is successful")
-      break
-    }
+
+  buf, err := zipDirectory(directory)
+  if err != nil {
+    panic(err)
+  }
+
+  err = client.DeployAndCheckResult(buf.Bytes(), config.PollSeconds)
+  if err != nil {
+    panic(err)
   }
 
   return nil
