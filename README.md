@@ -21,7 +21,7 @@ $ spm install github.com/tzmfreedom/apex-util -u {USERNAME} -p {PASSWORD}
 ```
 
 ```bash
-$ spm install -c package.yml
+$ spm install -u {USERNAME} -p {PASSWORD} -P package.yml
 ```
 
 Package.yml format
@@ -38,4 +38,3 @@ UnInstall Package
 ```bash
 $ spm uninstall github.com/tzmfreedom/apex-util
 ```
-

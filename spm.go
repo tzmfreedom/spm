@@ -15,6 +15,7 @@ import (
   _ "github.com/k0kubun/pp"
   "github.com/urfave/cli"
   "gopkg.in/src-d/go-git.v4"
+  "gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -23,6 +24,7 @@ type Config struct {
   Endpoint string
   ApiVersion string
   PollSeconds int
+  PackageFile string
 }
 
 const (
@@ -71,16 +73,25 @@ func main() {
           Destination: &config.PollSeconds,
           EnvVar: "SF_POLLSECONDS",
         },
+        cli.StringFlag{
+          Name: "--packages, P",
+          Destination: &config.PackageFile,
+        },
       },
       Action:  func(c *cli.Context) error {
-        url := c.Args().First()
-        r := regexp.MustCompile(`^[^/]+/[^/]+$`)
-        if r.MatchString(url) {
-          url = DEFAULT_REPOSITORY + "/" + url
+        urls := []string{}
+        if config.PackageFile != "" {
+          packageFile, err := readPackageFile(config.PackageFile)
+          if err != nil {
+            panic(err)
+          }
+          for _, pkg := range packageFile.Packages {
+            urls = append(urls, convertToUrl(pkg))
+          }
+        } else {
+          urls = []string{convertToUrl(c.Args().First())}
         }
-        log.Println("Clone repository from " + url)
-
-        install("https://" + url, config)
+        install(urls, config)
         return nil
       },
     },
@@ -100,16 +111,43 @@ func main() {
   app.Run(os.Args)
 }
 
-func install(url string, config Config) {
+func install(urls []string, config Config) {
   checkConfigration(config)
-  r := regexp.MustCompile(`^(.+?)/(.+?)/(.+?)$`)
-  group := r.FindAllStringSubmatch(url, -1)
-  directory := group[0][3]
+  for _, url := range urls {
+    log.Println("Clone repository from " + url)
+    r := regexp.MustCompile(`^(.+?)/(.+?)/(.+?)$`)
+    group := r.FindAllStringSubmatch(url, -1)
+    directory := group[0][3]
 
-  cloneDir := getSpmDirectory() + "/" + directory
-  cloneFromRemoteRepository(cloneDir, url)
-  deployToSalesforce(cloneDir + "/src", config)
-  cleanTempDirectory(cloneDir)
+    installToSalesforce(url, directory, config)
+  }
+}
+
+func convertToUrl(target string) (string){
+  url := target
+  r := regexp.MustCompile(`^[^/]+/[^/]+$`)
+  if r.MatchString(url) {
+    url = DEFAULT_REPOSITORY + "/" + url
+  }
+  return "https://" + url
+}
+
+type PackageFile struct {
+  Packages []string
+}
+
+func readPackageFile(packageFile string) (*PackageFile, error){
+  t := PackageFile{}
+  readBody, err := ioutil.ReadFile(packageFile)
+  if err != nil {
+    panic(err)
+    return nil, err
+  }
+  err = yaml.Unmarshal([]byte(readBody), &t)
+  if err != nil {
+    return nil, err
+  }
+  return &t, nil
 }
 
 func checkConfigration(config Config) {
@@ -119,6 +157,13 @@ func checkConfigration(config Config) {
   if config.Password == "" {
     panic("Password is required")
   }
+}
+
+func installToSalesforce(url string, directory string, config Config) {
+  cloneDir := getSpmDirectory() + "/" + directory
+  cloneFromRemoteRepository(cloneDir, url)
+  deployToSalesforce(cloneDir + "/src", config)
+  cleanTempDirectory(cloneDir)
 }
 
 func getSpmDirectory() (string) {
