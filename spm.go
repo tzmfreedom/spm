@@ -11,6 +11,7 @@ import (
   "archive/zip"
   "regexp"
   "log"
+  "errors"
 
   _ "github.com/k0kubun/pp"
   "github.com/urfave/cli"
@@ -78,7 +79,7 @@ func main() {
           Destination: &config.PackageFile,
         },
       },
-      Action:  func(c *cli.Context) error {
+      Action: func(c *cli.Context) error {
         urls := []string{}
         if config.PackageFile != "" {
           packageFile, err := readPackageFile(config.PackageFile)
@@ -91,7 +92,10 @@ func main() {
         } else {
           urls = []string{convertToUrl(c.Args().First())}
         }
-        install(urls, config)
+        err := install(urls, config)
+        if err != nil {
+          panic(err)
+        }
         return nil
       },
     },
@@ -100,8 +104,9 @@ func main() {
       Usage:   "initialize",
       Action:  func(c *cli.Context) error {
         spmDir := getSpmDirectory()
-        if err := os.Mkdir(spmDir, 0777); err != nil {
-          fmt.Println(err)
+        err := os.Mkdir(spmDir, 0777)
+        if err != nil {
+          panic(err)
         }
         return nil
       },
@@ -111,16 +116,23 @@ func main() {
   app.Run(os.Args)
 }
 
-func install(urls []string, config Config) {
-  checkConfigration(config)
+func install(urls []string, config Config) (error){
+  err := checkConfigration(config)
+  if err != nil {
+    return err
+  }
   for _, url := range urls {
     log.Println("Clone repository from " + url)
     r := regexp.MustCompile(`^(.+?)/(.+?)/(.+?)$`)
     group := r.FindAllStringSubmatch(url, -1)
     directory := group[0][3]
 
-    installToSalesforce(url, directory, config)
+    err = installToSalesforce(url, directory, config)
+    if err != nil {
+      return err
+    }
   }
+  return nil
 }
 
 func convertToUrl(target string) (string){
@@ -136,34 +148,44 @@ type PackageFile struct {
   Packages []string
 }
 
-func readPackageFile(packageFile string) (*PackageFile, error){
-  t := PackageFile{}
-  readBody, err := ioutil.ReadFile(packageFile)
-  if err != nil {
-    panic(err)
-    return nil, err
-  }
-  err = yaml.Unmarshal([]byte(readBody), &t)
+func readPackageFile(packageFileName string) (*PackageFile, error){
+  packageFile := PackageFile{}
+  readBody, err := ioutil.ReadFile(packageFileName)
   if err != nil {
     return nil, err
   }
-  return &t, nil
+  err = yaml.Unmarshal([]byte(readBody), &packageFile)
+  if err != nil {
+    return nil, err
+  }
+  return &packageFile, nil
 }
 
-func checkConfigration(config Config) {
+func checkConfigration(config Config) (error){
   if config.Username == "" {
-    panic("Username is required")
+    return errors.New("Username is required")
   }
   if config.Password == "" {
-    panic("Password is required")
+    return errors.New("Password is required")
   }
+  return nil
 }
 
-func installToSalesforce(url string, directory string, config Config) {
+func installToSalesforce(url string, directory string, config Config) (error) {
   cloneDir := getSpmDirectory() + "/" + directory
-  cloneFromRemoteRepository(cloneDir, url)
-  deployToSalesforce(cloneDir + "/src", config)
-  cleanTempDirectory(cloneDir)
+  err := cloneFromRemoteRepository(cloneDir, url)
+  if err != nil {
+    return err
+  }
+  err = deployToSalesforce(cloneDir + "/src", config)
+  if err != nil {
+    return err
+  }
+  err = cleanTempDirectory(cloneDir)
+  if err != nil {
+    return err
+  }
+  return nil
 }
 
 func getSpmDirectory() (string) {
@@ -178,13 +200,13 @@ func cleanTempDirectory(directory string) (error) {
   return nil
 }
 
-func cloneFromRemoteRepository(directory string, url string) {
+func cloneFromRemoteRepository(directory string, url string) (error) {
   r, err := git.NewFilesystemRepository(directory)
   err = r.Clone(&git.CloneOptions{
     URL: url,
   })
   if err != nil {
-    panic(err)
+    return err
   }
 
   // ... retrieving the branch being pointed by HEAD
@@ -222,6 +244,10 @@ func cloneFromRemoteRepository(directory string, url string) {
     _, err = io.Copy(file, r)
     return err
   })
+  if err != nil {
+    return err
+  }
+  return nil
 }
 
 func find(targetDir string) ([]string, error) {
@@ -285,17 +311,17 @@ func deployToSalesforce(directory string, config Config) (error) {
   client := NewForceClient(config.Endpoint, config.ApiVersion)
   err := client.Login(config.Username, config.Password)
   if err != nil {
-    panic(err)
+    return err
   }
 
   buf, err := zipDirectory(directory)
   if err != nil {
-    panic(err)
+    return err
   }
 
   err = client.DeployAndCheckResult(buf.Bytes(), config.PollSeconds)
   if err != nil {
-    panic(err)
+    return err
   }
 
   return nil

@@ -39,7 +39,7 @@ func (client *ForceClient) DeployAndCheckResult(buf []byte, pollseconds int) (er
 
   response, err := client.portType.Deploy(&request)
   if err != nil {
-    panic(err)
+    return err
   }
   log.Println("Deploying...")
   for {
@@ -48,7 +48,7 @@ func (client *ForceClient) DeployAndCheckResult(buf []byte, pollseconds int) (er
     check_request := CheckDeployStatus{AsyncProcessId: response.Result.Id, IncludeDetails: true}
     check_response, err := client.portType.CheckDeployStatus(&check_request)
     if err != nil {
-      panic(err)
+      return err
     }
     if check_response.Result.Done {
       log.Println("Deploy is successful")
