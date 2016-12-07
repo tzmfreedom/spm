@@ -127,7 +127,7 @@ func install(urls []string, config Config) (error){
     group := r.FindAllStringSubmatch(url, -1)
     directory := group[0][3]
 
-    err = installToSalesforce(url, directory, config)
+    err = installToSalesforce(url, directory, branch, config)
     if err != nil {
       return err
     }
@@ -171,9 +171,9 @@ func checkConfigration(config Config) (error){
   return nil
 }
 
-func installToSalesforce(url string, directory string, config Config) (error) {
+func installToSalesforce(url string, directory string, branch string, config Config) (error) {
   cloneDir := getSpmDirectory() + "/" + directory
-  err := cloneFromRemoteRepository(cloneDir, url)
+  err := cloneFromRemoteRepository(cloneDir, url, branch)
   if err != nil {
     return err
   }
@@ -200,10 +200,15 @@ func cleanTempDirectory(directory string) (error) {
   return nil
 }
 
-func cloneFromRemoteRepository(directory string, url string) (error) {
+func cloneFromRemoteRepository(directory string, url string, paramBranch string) (error) {
+  branch := "master"
+  if paramBranch != "" {
+    branch = paramBranch
+  }
   r, err := git.NewFilesystemRepository(directory)
   err = r.Clone(&git.CloneOptions{
     URL: url,
+    ReferenceName: "refs/heads/" + branch,
   })
   if err != nil {
     return err
