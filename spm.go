@@ -16,6 +16,7 @@ import (
   _ "github.com/k0kubun/pp"
   "github.com/urfave/cli"
   "gopkg.in/src-d/go-git.v4"
+  "gopkg.in/src-d/go-git.v4/plumbing"
   "gopkg.in/yaml.v2"
 )
 
@@ -122,12 +123,17 @@ func install(urls []string, config Config) (error){
     return err
   }
   for _, url := range urls {
-    log.Println("Clone repository from " + url)
-    r := regexp.MustCompile(`^(.+?)/(.+?)/(.+?)$`)
+    r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(@([^/]+))?$`)
     group := r.FindAllStringSubmatch(url, -1)
-    directory := group[0][3]
+    uri := group[0][1]
+    directory := group[0][4]
+    branch := group[0][6]
+    if branch == "" {
+      branch = "master"
+    }
+    log.Println("Clone repository from " + uri + " (branch: " + branch + ")")
 
-    err = installToSalesforce(url, directory, branch, config)
+    err = installToSalesforce(uri, directory, branch, config)
     if err != nil {
       return err
     }
@@ -137,7 +143,7 @@ func install(urls []string, config Config) (error){
 
 func convertToUrl(target string) (string){
   url := target
-  r := regexp.MustCompile(`^[^/]+/[^/]+$`)
+  r := regexp.MustCompile(`^[^/]+/[^/@]+(@[^/]+)?$`)
   if r.MatchString(url) {
     url = DEFAULT_REPOSITORY + "/" + url
   }
@@ -208,7 +214,7 @@ func cloneFromRemoteRepository(directory string, url string, paramBranch string)
   r, err := git.NewFilesystemRepository(directory)
   err = r.Clone(&git.CloneOptions{
     URL: url,
-    ReferenceName: "refs/heads/" + branch,
+    ReferenceName: plumbing.ReferenceName("refs/heads/" + branch),
   })
   if err != nil {
     return err
