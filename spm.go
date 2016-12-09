@@ -178,12 +178,12 @@ func checkConfigration(config Config) (error){
 }
 
 func installToSalesforce(url string, directory string, branch string, config Config) (error) {
-  cloneDir := getSpmDirectory() + "/" + directory
+  cloneDir := filepath.Join(getSpmDirectory(), directory)
   err := cloneFromRemoteRepository(cloneDir, url, branch)
   if err != nil {
     return err
   }
-  err = deployToSalesforce(cloneDir + "/src", config)
+  err = deployToSalesforce(filepath.Join(cloneDir, "src"), config)
   if err != nil {
     return err
   }
@@ -196,7 +196,7 @@ func installToSalesforce(url string, directory string, branch string, config Con
 
 func getSpmDirectory() (string) {
   usr, _ := user.Current()
-  return usr.HomeDir + "/" + DEFAULT_SPMDIRECTORY_NAME
+  return filepath.Join(usr.HomeDir, DEFAULT_SPMDIRECTORY_NAME)
 }
 
 func cleanTempDirectory(directory string) (error) {
@@ -231,7 +231,7 @@ func cloneFromRemoteRepository(directory string, url string, paramBranch string)
 
   _, err = r.Head()
   err = files.ForEach(func(f *git.File) error {
-    abs := filepath.Join(directory + "/src", f.Name)
+    abs := filepath.Join(directory, "src", f.Name)
     dir := filepath.Dir(abs)
 
     os.MkdirAll(dir, 0777)
@@ -271,7 +271,7 @@ func find(targetDir string) ([]string, error) {
       }
 
       if info.IsDir() {
-        paths = append(paths, fmt.Sprintf("%s/", rel))
+        paths = append(paths, fmt.Sprintf(filepath.Join("%s", ""), rel))
         return nil
       }
 
@@ -297,10 +297,10 @@ func zipDirectory(directory string) (*bytes.Buffer, error){
   }
 
   for _, file := range files {
-    absPath, _ := filepath.Abs(directory + "/" + file)
+    absPath, _ := filepath.Abs(filepath.Join(directory, file))
     info, _ := os.Stat(absPath)
 
-    f, err := zwriter.Create("src/" + file)
+    f, err := zwriter.Create(filepath.Join("src", file))
 
     if info.IsDir() {
       continue
