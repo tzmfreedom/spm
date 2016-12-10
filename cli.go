@@ -44,11 +44,11 @@ const (
 	DEFAULT_REPOSITORY string = "github.com"
 )
 
-func (cl *CLI) Run(args []string) (err error) {
-	if cl.Logger == nil {
-		cl.Logger = NewLogger(os.Stdout)
+func (c *CLI) Run(args []string) (err error) {
+	if c.Logger == nil {
+		c.Logger = NewLogger(os.Stdout)
 	}
-	cl.Config = &Config{}
+	c.Config = &Config{}
 
 	app := cli.NewApp()
 	app.Name = "spm"
@@ -63,57 +63,57 @@ func (cl *CLI) Run(args []string) (err error) {
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:        "username, u",
-					Destination: &cl.Config.Username,
+					Destination: &c.Config.Username,
 					EnvVar:      "SF_USERNAME",
 				},
 				cli.StringFlag{
 					Name:        "password, p",
-					Destination: &cl.Config.Password,
+					Destination: &c.Config.Password,
 					EnvVar:      "SF_PASSWORD",
 				},
 				cli.StringFlag{
 					Name:        "endpoint, e",
 					Value:       "login.salesforce.com",
-					Destination: &cl.Config.Endpoint,
+					Destination: &c.Config.Endpoint,
 					EnvVar:      "SF_ENDPOINT",
 				},
 				cli.StringFlag{
 					Name:        "apiversion",
 					Value:       "38.0",
-					Destination: &cl.Config.ApiVersion,
+					Destination: &c.Config.ApiVersion,
 					EnvVar:      "SF_APIVERSION",
 				},
 				cli.IntFlag{
 					Name:        "pollSeconds",
 					Value:       5,
-					Destination: &cl.Config.PollSeconds,
+					Destination: &c.Config.PollSeconds,
 					EnvVar:      "SF_POLLSECONDS",
 				},
 				cli.IntFlag{
 					Name:        "timeoutSeconds",
 					Value:       0,
-					Destination: &cl.Config.TimeoutSeconds,
+					Destination: &c.Config.TimeoutSeconds,
 					EnvVar:      "SF_TIMEOUTSECONDS",
 				},
 				cli.StringFlag{
 					Name:        "packages, P",
-					Destination: &cl.Config.PackageFile,
+					Destination: &c.Config.PackageFile,
 				},
 			},
-			Action: func(c *cli.Context) error {
+			Action: func(ctx *cli.Context) error {
 				urls := []string{}
-				if cl.Config.PackageFile != "" {
-					packageFile, err := cl.readPackageFile(cl.Config.PackageFile)
+				if c.Config.PackageFile != "" {
+					packageFile, err := c.readPackageFile()
 					if err != nil {
 						return nil
 					}
 					for _, pkg := range packageFile.Packages {
-						urls = append(urls, cl.convertToUrl(pkg))
+						urls = append(urls, c.convertToUrl(pkg))
 					}
 				} else {
-					urls = []string{cl.convertToUrl(c.Args().First())}
+					urls = []string{c.convertToUrl(ctx.Args().First())}
 				}
-				err = cl.install(urls)
+				err = c.install(urls)
 				return nil
 			},
 		},
@@ -121,7 +121,7 @@ func (cl *CLI) Run(args []string) (err error) {
 
 	app.Run(args)
 	if err != nil {
-		cl.Logger.Error(err)
+		c.Logger.Error(err)
 	}
 	return err
 }
@@ -172,9 +172,9 @@ func (c *CLI)convertToUrl(target string) string {
 	return "https://" + url
 }
 
-func (c *CLI)readPackageFile(packageFileName string) (*PackageFile, error) {
+func (c *CLI)readPackageFile() (*PackageFile, error) {
 	packageFile := PackageFile{}
-	readBody, err := ioutil.ReadFile(packageFileName)
+	readBody, err := ioutil.ReadFile(c.Config.PackageFile)
 	if err != nil {
 		return nil, err
 	}
