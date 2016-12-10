@@ -12780,8 +12780,8 @@ type DeployOptions struct {
 }
 
 type AsyncResult struct {
-// Modify
-//	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata AsyncResult"`
+	// Modify
+	//	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata AsyncResult"`
 
 	Done bool `xml:"done,omitempty"`
 
@@ -12923,24 +12923,24 @@ type LogInfo struct {
 }
 
 type LoginRequest struct {
-	XMLName xml.Name `xml:"urn:partner.soap.sforce.com login"`
-	Username string `xml:"username"`
-	Password string `xml:"password"`
+	XMLName  xml.Name `xml:"urn:partner.soap.sforce.com login"`
+	Username string   `xml:"username"`
+	Password string   `xml:"password"`
 }
 
 type LoginResponse struct {
-	XMLName xml.Name `xml:"urn:partner.soap.sforce.com loginResponse"`
+	XMLName     xml.Name    `xml:"urn:partner.soap.sforce.com loginResponse"`
 	LoginResult LoginResult `xml:"result"`
 }
 
 type LoginResult struct {
 	MetadataServerUrl string `xml:"metadataServerUrl"`
-	PasswordExpired bool `xml:"passwordExpired"`
-	Sandbox bool `xml:"sandbox`
-	ServerUrl string `xml:"serverUrl"`
-	SessionId string `xml:"sessionId"`
-	UserId *ID `xml:"userId"`
-//	UserInfo *UserInfo `xml:"userInfo"`
+	PasswordExpired   bool   `xml:"passwordExpired"`
+	Sandbox           bool   `xml:"sandbox`
+	ServerUrl         string `xml:"serverUrl"`
+	SessionId         string `xml:"sessionId"`
+	UserId            *ID    `xml:"userId"`
+	//	UserInfo *UserInfo `xml:"userInfo"`
 }
 
 type MetadataPortType struct {
@@ -12950,7 +12950,6 @@ type MetadataPortType struct {
 func (service *MetadataPortType) SetServerUrl(url string) {
 	service.client.SetServerUrl(url)
 }
-
 
 func NewMetadataPortType(url string, tls bool, auth *BasicAuth) *MetadataPortType {
 	if url == "" {
@@ -13201,7 +13200,7 @@ func (b *SOAPBody) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		consumed bool
 	)
 
-	Loop:
+Loop:
 	for {
 		if token, err = d.Token(); err != nil {
 			return err
@@ -13270,7 +13269,6 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 	envelope.Body.Content = request
 	buffer := new(bytes.Buffer)
 
-
 	encoder := xml.NewEncoder(buffer)
 
 	if err := encoder.Encode(envelope); err != nil {
@@ -13332,7 +13330,6 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 	if fault != nil {
 		return fault
 	}
-
 
 	return nil
 }
