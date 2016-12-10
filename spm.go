@@ -10,14 +10,15 @@ import (
   "bytes"
   "archive/zip"
   "regexp"
-  "log"
   "errors"
+  "time"
 
   _ "github.com/k0kubun/pp"
   "github.com/urfave/cli"
   "gopkg.in/src-d/go-git.v4"
   "gopkg.in/src-d/go-git.v4/plumbing"
   "gopkg.in/yaml.v2"
+  log "github.com/Sirupsen/logrus"
 )
 
 type Config struct {
@@ -26,13 +27,21 @@ type Config struct {
   Endpoint string
   ApiVersion string
   PollSeconds int
+  TimeoutSeconds int
   PackageFile string
 }
+
+const (
+  ExitCodeOK        int = iota
+  ExitCodeError
+)
 
 const (
   DEFAULT_REPOSITORY string = "github.com"
   DEFAULT_SPMDIRECTORY_NAME string = ".spm"
 )
+
+var client *ForceClient = nil
 
 func main() {
   config := Config{}
@@ -75,8 +84,14 @@ func main() {
           Destination: &config.PollSeconds,
           EnvVar: "SF_POLLSECONDS",
         },
+        cli.IntFlag {
+          Name: "timeoutSeconds",
+          Value: 0,
+          Destination: &config.TimeoutSeconds,
+          EnvVar: "SF_TIMEOUTSECONDS",
+        },
         cli.StringFlag{
-          Name: "--packages, P",
+          Name: "packages, P",
           Destination: &config.PackageFile,
         },
       },
@@ -85,7 +100,7 @@ func main() {
         if config.PackageFile != "" {
           packageFile, err := readPackageFile(config.PackageFile)
           if err != nil {
-            panic(err)
+            log.Error(err)
           }
           for _, pkg := range packageFile.Packages {
             urls = append(urls, convertToUrl(pkg))
@@ -93,11 +108,7 @@ func main() {
         } else {
           urls = []string{convertToUrl(c.Args().First())}
         }
-        err := install(urls, config)
-        if err != nil {
-          panic(err)
-        }
-        return nil
+        return install(urls, &config)
       },
     },
     {
@@ -105,23 +116,30 @@ func main() {
       Usage:   "initialize",
       Action:  func(c *cli.Context) error {
         spmDir := getSpmDirectory()
-        err := os.Mkdir(spmDir, 0777)
-        if err != nil {
-          panic(err)
-        }
-        return nil
+        return os.Mkdir(spmDir, 0777)
       },
     },
   }
 
-  app.Run(os.Args)
+  statusCode := ExitCodeOK
+  err := app.Run(os.Args)
+  if err != nil {
+    statusCode = ExitCodeError
+    log.Error(err)
+  }
+  os.Exit(statusCode)
 }
 
-func install(urls []string, config Config) (error){
+func install(urls []string, config *Config) (error){
   err := checkConfigration(config)
   if err != nil {
     return err
   }
+  err = setClient(config)
+  if err != nil {
+    return err
+  }
+
   for _, url := range urls {
     r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(@([^/]+))?$`)
     group := r.FindAllStringSubmatch(url, -1)
@@ -131,12 +149,21 @@ func install(urls []string, config Config) (error){
     if branch == "" {
       branch = "master"
     }
-    log.Println("Clone repository from " + uri + " (branch: " + branch + ")")
+    log.Info("Clone repository from " + uri + " (branch: " + branch + ")")
 
     err = installToSalesforce(uri, directory, branch, config)
     if err != nil {
       return err
     }
+  }
+  return nil
+}
+
+func setClient(config *Config) (error){
+  client = NewForceClient(config.Endpoint, config.ApiVersion)
+  err := client.Login(config.Username, config.Password)
+  if err != nil {
+    return err
   }
   return nil
 }
@@ -167,7 +194,7 @@ func readPackageFile(packageFileName string) (*PackageFile, error){
   return &packageFile, nil
 }
 
-func checkConfigration(config Config) (error){
+func checkConfigration(config *Config) (error){
   if config.Username == "" {
     return errors.New("Username is required")
   }
@@ -177,7 +204,7 @@ func checkConfigration(config Config) (error){
   return nil
 }
 
-func installToSalesforce(url string, directory string, branch string, config Config) (error) {
+func installToSalesforce(url string, directory string, branch string, config *Config) (error) {
   cloneDir := filepath.Join(getSpmDirectory(), directory)
   err := cloneFromRemoteRepository(cloneDir, url, branch)
   if err != nil {
@@ -318,22 +345,46 @@ func zipDirectory(directory string) (*bytes.Buffer, error){
 }
 
 
-func deployToSalesforce(directory string, config Config) (error) {
-  client := NewForceClient(config.Endpoint, config.ApiVersion)
-  err := client.Login(config.Username, config.Password)
-  if err != nil {
-    return err
-  }
-
+func deployToSalesforce(directory string, config *Config) (error) {
   buf, err := zipDirectory(directory)
   if err != nil {
     return err
   }
 
-  err = client.DeployAndCheckResult(buf.Bytes(), config.PollSeconds)
+  response, err := client.Deploy(buf.Bytes())
   if err != nil {
     return err
   }
 
+  err = checkDeployStatus(response.Result.Id, config)
+  if err != nil {
+    return err
+  }
+  log.Info("Deploy is successful")
+
   return nil
+}
+
+
+func checkDeployStatus(resultId *ID, config *Config) (error) {
+  totalTime := 0
+  for {
+    time.Sleep(time.Duration(config.PollSeconds) * time.Second)
+    log.Info("Check Deploy Result...")
+
+    response, err := client.CheckDeployStatus(resultId)
+    if err != nil {
+      return err
+    }
+    if response.Result.Done {
+      return nil
+    }
+    if config.TimeoutSeconds != 0 {
+      totalTime += config.PollSeconds
+      if totalTime > config.TimeoutSeconds {
+        log.Error("Deploy is timeout. Please check release status for the deployment")
+        return nil
+      }
+    }
+  }
 }

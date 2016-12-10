@@ -1,9 +1,7 @@
 package main
 
 import (
-  "log"
   "encoding/base64"
-  "time"
 )
 
 type ForceClient struct {
@@ -26,7 +24,7 @@ func (client *ForceClient) Login(username string, password string) (error) {
   return nil
 }
 
-func (client *ForceClient) DeployAndCheckResult(buf []byte, pollseconds int) (error) {
+func (client *ForceClient) Deploy(buf []byte) (*DeployResponse, error) {
   request := Deploy{
     ZipFile: base64.StdEncoding.EncodeToString(buf),
     DeployOptions: nil,
@@ -37,24 +35,11 @@ func (client *ForceClient) DeployAndCheckResult(buf []byte, pollseconds int) (er
   client.portType.SetHeader(&sessionHeader)
   client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
 
-  response, err := client.portType.Deploy(&request)
-  if err != nil {
-    return err
-  }
-  log.Println("Deploying...")
-  for {
-    time.Sleep(time.Duration(pollseconds) * time.Second)
-    log.Println("Check Deploy Result...")
-    check_request := CheckDeployStatus{AsyncProcessId: response.Result.Id, IncludeDetails: true}
-    check_response, err := client.portType.CheckDeployStatus(&check_request)
-    if err != nil {
-      return err
-    }
-    if check_response.Result.Done {
-      log.Println("Deploy is successful")
-      return nil
-    }
-  }
-  return nil
+  return client.portType.Deploy(&request)
+}
+
+func (client *ForceClient) CheckDeployStatus(resultId *ID) (*CheckDeployStatusResponse, error) {
+  check_request := CheckDeployStatus{AsyncProcessId: resultId, IncludeDetails: true}
+  return client.portType.CheckDeployStatus(&check_request)
 }
 
