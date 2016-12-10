@@ -45,7 +45,9 @@ const (
 )
 
 func (cl *CLI) Run(args []string) (err error) {
-	cl.Logger = NewLogger(os.Stdout)
+	if cl.Logger == nil {
+		cl.Logger = NewLogger(os.Stdout)
+	}
 	cl.Config = &Config{}
 
 	app := cli.NewApp()
