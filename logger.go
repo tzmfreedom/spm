@@ -2,37 +2,45 @@ package main
 
 import (
 	"os"
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 )
 
 type Logger struct {
+	OutLogger *logrus.Logger
+	ErrLogger *logrus.Logger
 }
 
-func NewLogger(outStream *os.File) *Logger {
-	log.SetOutput(outStream)
-	return &Logger{}
+func NewLogger(outStream *os.File, errStream *os.File) *Logger {
+	outLogger := logrus.New()
+	outLogger.Out = outStream
+	errLogger := logrus.New()
+	errLogger.Out = errStream
+	return &Logger{
+		OutLogger: outLogger,
+		ErrLogger: errLogger,
+	}
 }
 
 func (l *Logger)Info(args ...interface{}) {
-	log.Info(args...)
+	l.OutLogger.Info(args...)
 }
 
 func (l *Logger)Infof(format string, args ...interface{}) {
-	log.Infof(format, args...)
+	l.OutLogger.Infof(format, args...)
 }
 
 func (l *Logger)Warning(args ...interface{}) {
-	log.Warning(args...)
+	l.OutLogger.Warning(args...)
 }
 
 func (l *Logger)Warningf(format string, args ...interface{}) {
-	log.Warningf(format, args...)
+	l.OutLogger.Warningf(format, args...)
 }
 
 func (l *Logger)Error(args ...interface{}) {
-	log.Error(args...)
+	l.OutLogger.Error(args...)
 }
 
 func (l *Logger)Errorf(format string, args ...interface{}) {
-	log.Errorf(format, args...)
+	l.OutLogger.Errorf(format, args...)
 }
