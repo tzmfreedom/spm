@@ -321,6 +321,7 @@ func (c *CLI)find(targetDir string) ([]string, error) {
 func (c *CLI)zipDirectory(directory string) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 	zwriter := zip.NewWriter(buf)
+	defer zwriter.Close()
 
 	files, err := c.find(directory)
 	if err != nil {
@@ -344,7 +345,6 @@ func (c *CLI)zipDirectory(directory string) (*bytes.Buffer, error) {
 		f.Write(body)
 	}
 
-	zwriter.Close()
 	return buf, nil
 }
 
