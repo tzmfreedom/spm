@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	_ "github.com/k0kubun/pp"
 	"github.com/urfave/cli"
 	"gopkg.in/src-d/go-git.v4"
@@ -23,6 +22,7 @@ import (
 type CLI struct {
 	Client *ForceClient
 	Config *Config
+	Logger *Logger
 }
 
 type Config struct {
@@ -45,7 +45,7 @@ const (
 )
 
 func (cl *CLI) Run(args []string) (err error) {
-	//log.
+	cl.Logger = NewLogger(os.Stdout)
 	cl.Config = &Config{}
 
 	app := cli.NewApp()
@@ -119,7 +119,7 @@ func (cl *CLI) Run(args []string) (err error) {
 
 	app.Run(args)
 	if err != nil {
-		log.Error(err)
+		cl.Logger.Error(err)
 	}
 	return err
 }
@@ -195,7 +195,7 @@ func (c *CLI)checkConfigration() error {
 
 func (c *CLI)installToSalesforce(url string, directory string, branch string) error {
 	cloneDir := filepath.Join(os.TempDir(), directory)
-	log.Info("Clone repository from " + url + " (branch: " + branch + ")")
+	c.Logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
 	err := c.cloneFromRemoteRepository(cloneDir, url, branch)
 	if err != nil {
 		return err
@@ -210,8 +210,7 @@ func (c *CLI)installToSalesforce(url string, directory string, branch string) er
 
 func (c *CLI)cleanTempDirectory(directory string) error {
 	if err := os.RemoveAll(directory); err != nil {
-		log.Error(err)
-		return nil
+		return err
 	}
 	return nil
 }
@@ -233,8 +232,8 @@ func (c *CLI)createFilesystemRepository(directory string, url string, paramBranc
 		if retry == true {
 			return
 		}
-		log.Warningf("repository non empty: %s", directory)
-		log.Infof("remove directory: %s", directory)
+		c.Logger.Warningf("repository non empty: %s", directory)
+		c.Logger.Infof("remove directory: %s", directory)
 		err = c.cleanTempDirectory(directory)
 		if err != nil {
 			return
@@ -362,7 +361,7 @@ func (c *CLI)deployToSalesforce(directory string) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Deploy is successful")
+	c.Logger.Info("Deploy is successful")
 
 	return nil
 }
@@ -371,7 +370,7 @@ func (c *CLI)checkDeployStatus(resultId *ID) error {
 	totalTime := 0
 	for {
 		time.Sleep(time.Duration(c.Config.PollSeconds) * time.Second)
-		log.Info("Check Deploy Result...")
+		c.Logger.Info("Check Deploy Result...")
 
 		response, err := c.Client.CheckDeployStatus(resultId)
 		if err != nil {
@@ -383,7 +382,7 @@ func (c *CLI)checkDeployStatus(resultId *ID) error {
 		if c.Config.TimeoutSeconds != 0 {
 			totalTime += c.Config.PollSeconds
 			if totalTime > c.Config.TimeoutSeconds {
-				log.Error("Deploy is timeout. Please check release status for the deployment")
+				c.Logger.Error("Deploy is timeout. Please check release status for the deployment")
 				return nil
 			}
 		}
