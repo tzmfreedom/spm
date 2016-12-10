@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"time"
@@ -38,7 +37,6 @@ const (
 
 const (
 	DEFAULT_REPOSITORY        string = "github.com"
-	DEFAULT_SPMDIRECTORY_NAME string = ".spm"
 )
 
 var client *ForceClient = nil
@@ -109,14 +107,6 @@ func main() {
 					urls = []string{convertToUrl(c.Args().First())}
 				}
 				return install(urls, &config)
-			},
-		},
-		{
-			Name:  "init",
-			Usage: "initialize",
-			Action: func(c *cli.Context) error {
-				spmDir := getSpmDirectory()
-				return os.Mkdir(spmDir, 0777)
 			},
 		},
 	}
@@ -205,30 +195,23 @@ func checkConfigration(config *Config) error {
 }
 
 func installToSalesforce(url string, directory string, branch string, config *Config) error {
-	cloneDir := filepath.Join(getSpmDirectory(), directory)
+	cloneDir := filepath.Join(os.TempDir(), directory)
 	err := cloneFromRemoteRepository(cloneDir, url, branch)
 	if err != nil {
 		return err
 	}
+	defer cleanTempDirectory(cloneDir)
 	err = deployToSalesforce(filepath.Join(cloneDir, "src"), config)
-	if err != nil {
-		return err
-	}
-	err = cleanTempDirectory(cloneDir)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func getSpmDirectory() string {
-	usr, _ := user.Current()
-	return filepath.Join(usr.HomeDir, DEFAULT_SPMDIRECTORY_NAME)
-}
-
 func cleanTempDirectory(directory string) error {
 	if err := os.RemoveAll(directory); err != nil {
-		return err
+		log.Error(err)
+		return nil
 	}
 	return nil
 }
