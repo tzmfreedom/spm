@@ -17,7 +17,7 @@ $ go get github.com/tzmfreedom/spm
 Install Package
 
 ```bash
-$ spm install github.com/tzmfreedom/apex-util -u {USERNAME} -p {PASSWORD}
+$ spm install github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD}
 ```
 
 ```bash
@@ -33,8 +33,8 @@ packages:
   - github.com/tzmfreedom/apex-util3
 ```
 
-UnInstall Package
+Sandbox
 
 ```bash
-$ spm uninstall github.com/tzmfreedom/apex-util
+$ spm install github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD} -e test.salesforce.com
 ```
