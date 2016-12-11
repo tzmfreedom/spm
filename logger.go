@@ -1,7 +1,7 @@
 package main
 
 import (
-	"os"
+	"io"
 	"github.com/Sirupsen/logrus"
 )
 
@@ -10,7 +10,7 @@ type Logger struct {
 	ErrLogger *logrus.Logger
 }
 
-func NewLogger(outStream *os.File, errStream *os.File) *Logger {
+func NewLogger(outStream io.Writer, errStream io.Writer) *Logger {
 	outLogger := logrus.New()
 	outLogger.Out = outStream
 	errLogger := logrus.New()
