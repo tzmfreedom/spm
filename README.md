@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/tzmfreedom/spm.svg?branch=master)](https://travis-ci.org/tzmfreedom/spm)
+
 # SPM
 
 Salesforce Package Manager
