@@ -4,7 +4,7 @@ Salesforce Package Manager
 
 ## Install
 
-Download binary file from [release page](./releases) and copy it to executable path.
+Download binary file from [release page](https://github.com/tzmfreedom/spm/releases) and copy it to executable path.
 
 If you want to use latest version, execute following command.
 
