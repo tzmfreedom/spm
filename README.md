@@ -65,3 +65,11 @@ Sandbox
 ```bash
 $ spm install github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD} -e test.salesforce.com
 ```
+
+## Contribute
+
+Just send pull request if needed or fill an issue!
+
+## License
+
+The MIT License See [LICENSE](https://github.com/tzmfreedom/spm/blob/master/LICENSE) file.
