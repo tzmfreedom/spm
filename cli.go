@@ -23,6 +23,7 @@ type CLI struct {
 	Client *ForceClient
 	Config *Config
 	Logger *Logger
+	Error error
 }
 
 type Config struct {
@@ -105,25 +106,41 @@ func (c *CLI) Run(args []string) (err error) {
 				if c.Config.PackageFile != "" {
 					packageFile, err := c.readPackageFile()
 					if err != nil {
+						c.Error = err
 						return nil
 					}
 					for _, pkg := range packageFile.Packages {
-						urls = append(urls, c.convertToUrl(pkg))
+						url, err := c.convertToUrl(pkg)
+						if err != nil {
+							c.Error = err
+							return nil
+						}
+						urls = append(urls, url)
 					}
 				} else {
-					urls = []string{c.convertToUrl(ctx.Args().First())}
+					url, err := c.convertToUrl(ctx.Args().First())
+					if err != nil {
+						c.Error = err
+						return nil
+					}
+					urls = []string{url}
+
 				}
-				err = c.install(urls)
+				if len(urls) == 0 {
+					c.Error = errors.New("Repository not specified")
+					return nil
+				}
+				c.Error = c.install(urls)
 				return nil
 			},
 		},
 	}
 
 	app.Run(args)
-	if err != nil {
-		c.Logger.Error(err)
+	if c.Error != nil {
+		c.Logger.Error(c.Error)
 	}
-	return err
+	return c.Error
 }
 
 func (c *CLI) install(urls []string) error {
@@ -163,13 +180,16 @@ func (c *CLI)setClient() error {
 	return nil
 }
 
-func (c *CLI)convertToUrl(target string) string {
+func (c *CLI)convertToUrl(target string) (string, error) {
+	if target == "" {
+		return "", errors.New("Repository not specified")
+	}
 	url := target
 	r := regexp.MustCompile(`^[^/]+/[^/@]+(@[^/]+)?$`)
 	if r.MatchString(url) {
 		url = DEFAULT_REPOSITORY + "/" + url
 	}
-	return "https://" + url
+	return "https://" + url, nil
 }
 
 func (c *CLI)readPackageFile() (*PackageFile, error) {
