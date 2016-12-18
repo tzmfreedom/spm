@@ -23,7 +23,7 @@ type CLI struct {
 	Client *ForceClient
 	Config *Config
 	Logger *Logger
-	Error error
+	Error  error
 }
 
 type Config struct {
@@ -171,7 +171,7 @@ func (c *CLI) install(urls []string) error {
 	return nil
 }
 
-func (c *CLI)setClient() error {
+func (c *CLI) setClient() error {
 	c.Client = NewForceClient(c.Config.Endpoint, c.Config.ApiVersion)
 	err := c.Client.Login(c.Config.Username, c.Config.Password)
 	if err != nil {
@@ -180,7 +180,7 @@ func (c *CLI)setClient() error {
 	return nil
 }
 
-func (c *CLI)convertToUrl(target string) (string, error) {
+func (c *CLI) convertToUrl(target string) (string, error) {
 	if target == "" {
 		return "", errors.New("Repository not specified")
 	}
@@ -192,7 +192,7 @@ func (c *CLI)convertToUrl(target string) (string, error) {
 	return "https://" + url, nil
 }
 
-func (c *CLI)readPackageFile() (*PackageFile, error) {
+func (c *CLI) readPackageFile() (*PackageFile, error) {
 	packageFile := PackageFile{}
 	readBody, err := ioutil.ReadFile(c.Config.PackageFile)
 	if err != nil {
@@ -205,7 +205,7 @@ func (c *CLI)readPackageFile() (*PackageFile, error) {
 	return &packageFile, nil
 }
 
-func (c *CLI)checkConfigration() error {
+func (c *CLI) checkConfigration() error {
 	if c.Config.Username == "" {
 		return errors.New("Username is required")
 	}
@@ -215,7 +215,7 @@ func (c *CLI)checkConfigration() error {
 	return nil
 }
 
-func (c *CLI)installToSalesforce(url string, directory string, branch string) error {
+func (c *CLI) installToSalesforce(url string, directory string, branch string) error {
 	cloneDir := filepath.Join(os.TempDir(), directory)
 	c.Logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
 	err := c.cloneFromRemoteRepository(cloneDir, url, branch)
@@ -230,14 +230,14 @@ func (c *CLI)installToSalesforce(url string, directory string, branch string) er
 	return nil
 }
 
-func (c *CLI)cleanTempDirectory(directory string) error {
+func (c *CLI) cleanTempDirectory(directory string) error {
 	if err := os.RemoveAll(directory); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *CLI)createFilesystemRepository(directory string, url string, paramBranch string, retry bool) (r *git.Repository, err error){
+func (c *CLI) createFilesystemRepository(directory string, url string, paramBranch string, retry bool) (r *git.Repository, err error) {
 	branch := "master"
 	if paramBranch != "" {
 		branch = paramBranch
@@ -265,7 +265,7 @@ func (c *CLI)createFilesystemRepository(directory string, url string, paramBranc
 	return
 }
 
-func (c *CLI)cloneFromRemoteRepository(directory string, url string, branch string) error {
+func (c *CLI) cloneFromRemoteRepository(directory string, url string, branch string) error {
 	r, err := c.createFilesystemRepository(directory, url, branch, false)
 	if err != nil {
 		return err
@@ -312,7 +312,7 @@ func (c *CLI)cloneFromRemoteRepository(directory string, url string, branch stri
 	return nil
 }
 
-func (c *CLI)find(targetDir string) ([]string, error) {
+func (c *CLI) find(targetDir string) ([]string, error) {
 	var paths []string
 	err := filepath.Walk(targetDir,
 		func(path string, info os.FileInfo, err error) error {
@@ -338,7 +338,7 @@ func (c *CLI)find(targetDir string) ([]string, error) {
 	return paths, nil
 }
 
-func (c *CLI)zipDirectory(directory string) (*bytes.Buffer, error) {
+func (c *CLI) zipDirectory(directory string) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
 	zwriter := zip.NewWriter(buf)
 	defer zwriter.Close()
@@ -368,7 +368,7 @@ func (c *CLI)zipDirectory(directory string) (*bytes.Buffer, error) {
 	return buf, nil
 }
 
-func (c *CLI)deployToSalesforce(directory string) error {
+func (c *CLI) deployToSalesforce(directory string) error {
 	buf, err := c.zipDirectory(directory)
 	if err != nil {
 		return err
@@ -388,7 +388,7 @@ func (c *CLI)deployToSalesforce(directory string) error {
 	return nil
 }
 
-func (c *CLI)checkDeployStatus(resultId *ID) error {
+func (c *CLI) checkDeployStatus(resultId *ID) error {
 	totalTime := 0
 	for {
 		time.Sleep(time.Duration(c.Config.PollSeconds) * time.Second)

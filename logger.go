@@ -1,8 +1,8 @@
 package main
 
 import (
-	"io"
 	"github.com/Sirupsen/logrus"
+	"io"
 )
 
 type Logger struct {
@@ -21,26 +21,26 @@ func NewLogger(outStream io.Writer, errStream io.Writer) *Logger {
 	}
 }
 
-func (l *Logger)Info(args ...interface{}) {
+func (l *Logger) Info(args ...interface{}) {
 	l.OutLogger.Info(args...)
 }
 
-func (l *Logger)Infof(format string, args ...interface{}) {
+func (l *Logger) Infof(format string, args ...interface{}) {
 	l.OutLogger.Infof(format, args...)
 }
 
-func (l *Logger)Warning(args ...interface{}) {
+func (l *Logger) Warning(args ...interface{}) {
 	l.OutLogger.Warning(args...)
 }
 
-func (l *Logger)Warningf(format string, args ...interface{}) {
+func (l *Logger) Warningf(format string, args ...interface{}) {
 	l.OutLogger.Warningf(format, args...)
 }
 
-func (l *Logger)Error(args ...interface{}) {
+func (l *Logger) Error(args ...interface{}) {
 	l.OutLogger.Error(args...)
 }
 
-func (l *Logger)Errorf(format string, args ...interface{}) {
+func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.OutLogger.Errorf(format, args...)
 }
