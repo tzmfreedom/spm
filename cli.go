@@ -16,6 +16,7 @@ import (
 	"github.com/urfave/cli"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/yaml.v2"
 )
 
@@ -281,7 +282,7 @@ func (c *CLI) cloneFromRemoteRepository(directory string, url string, branch str
 	files, _ := commit.Files()
 
 	_, err = r.Head()
-	err = files.ForEach(func(f *git.File) error {
+	err = files.ForEach(func(f *object.File) error {
 		abs := filepath.Join(directory, "src", f.Name)
 		dir := filepath.Dir(abs)
 
