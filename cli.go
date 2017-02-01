@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,9 +13,8 @@ import (
 
 	_ "github.com/k0kubun/pp"
 	"github.com/urfave/cli"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"srcd.works/go-git.v4"
+	"srcd.works/go-git.v4/plumbing"
 	"gopkg.in/yaml.v2"
 )
 
@@ -220,12 +218,12 @@ func (c *CLI) checkConfigration() error {
 func (c *CLI) installToSalesforce(url string, directory string, targetDirectory string, branch string) error {
 	cloneDir := filepath.Join(os.TempDir(), directory)
 	c.Logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
-	err := c.cloneFromRemoteRepository(cloneDir, url, branch)
+	err := c.cloneFromRemoteRepository(cloneDir, url, branch, false)
 	if err != nil {
 		return err
 	}
 	defer c.cleanTempDirectory(cloneDir)
-	err = c.deployToSalesforce(filepath.Join(cloneDir, "src", targetDirectory))
+	err = c.deployToSalesforce(filepath.Join(cloneDir, targetDirectory))
 	if err != nil {
 		return err
 	}
@@ -239,18 +237,17 @@ func (c *CLI) cleanTempDirectory(directory string) error {
 	return nil
 }
 
-func (c *CLI) createFilesystemRepository(directory string, url string, paramBranch string, retry bool) (r *git.Repository, err error) {
+func (c *CLI) cloneFromRemoteRepository(directory string, url string, paramBranch string, retry bool) (err error) {
 	branch := "master"
 	if paramBranch != "" {
 		branch = paramBranch
 	}
-	r, err = git.NewFilesystemRepository(directory)
-	err = r.Clone(&git.CloneOptions{
+	_, err = git.PlainClone(directory, false, &git.CloneOptions{
 		URL:           url,
 		ReferenceName: plumbing.ReferenceName("refs/heads/" + branch),
 	})
 	if err != nil {
-		if err.Error() != "repository non empty" {
+		if err.Error() != "repository already exists" {
 			return
 		}
 		if retry == true {
@@ -262,56 +259,9 @@ func (c *CLI) createFilesystemRepository(directory string, url string, paramBran
 		if err != nil {
 			return
 		}
-		r, err = c.createFilesystemRepository(directory, url, paramBranch, true)
+		err = c.cloneFromRemoteRepository(directory, url, paramBranch, true)
 	}
 	return
-}
-
-func (c *CLI) cloneFromRemoteRepository(directory string, url string, branch string) error {
-	r, err := c.createFilesystemRepository(directory, url, branch, false)
-	if err != nil {
-		return err
-	}
-
-	// ... retrieving the branch being pointed by HEAD
-	ref, _ := r.Head()
-
-	// ... retrieving the commit object
-	commit, _ := r.Commit(ref.Hash())
-
-	// ... we get all the files from the commit
-	files, _ := commit.Files()
-
-	_, err = r.Head()
-	err = files.ForEach(func(f *object.File) error {
-		abs := filepath.Join(directory, "src", f.Name)
-		dir := filepath.Dir(abs)
-
-		os.MkdirAll(dir, 0777)
-		file, err := os.Create(abs)
-		if err != nil {
-			return err
-		}
-
-		defer file.Close()
-		r, err := f.Reader()
-		if err != nil {
-			return err
-		}
-
-		defer r.Close()
-
-		if err := file.Chmod(f.Mode); err != nil {
-			return err
-		}
-
-		_, err = io.Copy(file, r)
-		return err
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *CLI) find(targetDir string) ([]string, error) {
