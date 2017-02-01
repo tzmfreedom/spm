@@ -155,16 +155,17 @@ func (c *CLI) install(urls []string) error {
 	}
 
 	for _, url := range urls {
-		r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(@([^/]+))?$`)
+		r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(/([^@]+))?(@([^/]+))?$`)
 		group := r.FindAllStringSubmatch(url, -1)
 		uri := group[0][1]
 		directory := group[0][4]
-		branch := group[0][6]
+		targetDirectory := group[0][6]
+		branch := group[0][8]
 		if branch == "" {
 			branch = "master"
 		}
 
-		err = c.installToSalesforce(uri, directory, branch)
+		err = c.installToSalesforce(uri, directory, targetDirectory, branch)
 		if err != nil {
 			return err
 		}
@@ -186,7 +187,7 @@ func (c *CLI) convertToUrl(target string) (string, error) {
 		return "", errors.New("Repository not specified")
 	}
 	url := target
-	r := regexp.MustCompile(`^[^/]+/[^/@]+(@[^/]+)?$`)
+	r := regexp.MustCompile(`^[^/]+?/[^/@]+?(/[^@]+?)?(@[^/]+)?$`)
 	if r.MatchString(url) {
 		url = DEFAULT_REPOSITORY + "/" + url
 	}
@@ -216,7 +217,7 @@ func (c *CLI) checkConfigration() error {
 	return nil
 }
 
-func (c *CLI) installToSalesforce(url string, directory string, branch string) error {
+func (c *CLI) installToSalesforce(url string, directory string, targetDirectory string, branch string) error {
 	cloneDir := filepath.Join(os.TempDir(), directory)
 	c.Logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
 	err := c.cloneFromRemoteRepository(cloneDir, url, branch)
@@ -224,7 +225,7 @@ func (c *CLI) installToSalesforce(url string, directory string, branch string) e
 		return err
 	}
 	defer c.cleanTempDirectory(cloneDir)
-	err = c.deployToSalesforce(filepath.Join(cloneDir, "src"))
+	err = c.deployToSalesforce(filepath.Join(cloneDir, "src", targetDirectory))
 	if err != nil {
 		return err
 	}
