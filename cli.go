@@ -13,9 +13,9 @@ import (
 
 	_ "github.com/k0kubun/pp"
 	"github.com/urfave/cli"
+	"gopkg.in/yaml.v2"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing"
-	"gopkg.in/yaml.v2"
 )
 
 type CLI struct {
@@ -103,7 +103,7 @@ func (c *CLI) Run(args []string) (err error) {
 			Action: func(ctx *cli.Context) error {
 				urls := []string{}
 				if c.Config.PackageFile != "" {
-					packageFile, err := c.readPackageFile()
+					packageFile, err := c.readPackageFile(c.Config.PackageFile)
 					if err != nil {
 						c.Error = err
 						return nil
@@ -192,9 +192,9 @@ func (c *CLI) convertToUrl(target string) (string, error) {
 	return "https://" + url, nil
 }
 
-func (c *CLI) readPackageFile() (*PackageFile, error) {
+func (c *CLI) readPackageFile(configFile string) (*PackageFile, error) {
 	packageFile := PackageFile{}
-	readBody, err := ioutil.ReadFile(c.Config.PackageFile)
+	readBody, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return nil, err
 	}
@@ -223,6 +223,7 @@ func (c *CLI) installToSalesforce(url string, directory string, targetDirectory 
 		return err
 	}
 	defer c.cleanTempDirectory(cloneDir)
+	c.loadDependencies(cloneDir)
 	err = c.deployToSalesforce(filepath.Join(cloneDir, targetDirectory))
 	if err != nil {
 		return err
@@ -235,6 +236,28 @@ func (c *CLI) cleanTempDirectory(directory string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *CLI) loadDependencies(cloneDir string) error {
+	targetFile := filepath.Join(cloneDir, "package.yml")
+	_, err := os.Stat(targetFile)
+	if err != nil {
+		return nil
+	}
+	urls := []string{}
+	packageFile, err := c.readPackageFile(targetFile)
+	if err != nil {
+		return err
+	}
+	for _, pkg := range packageFile.Packages {
+		url, err := c.convertToUrl(pkg)
+		if err != nil {
+			c.Error = err
+			return nil
+		}
+		urls = append(urls, url)
+	}
+	return c.install(urls)
 }
 
 func (c *CLI) cloneFromRemoteRepository(directory string, url string, paramBranch string, retry bool) (err error) {
