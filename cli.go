@@ -33,6 +33,8 @@ type Config struct {
 	PollSeconds    int
 	TimeoutSeconds int
 	PackageFile    string
+	IsCloneOnly    bool
+	Directory      string
 }
 
 type PackageFile struct {
@@ -99,31 +101,20 @@ func (c *CLI) Run(args []string) (err error) {
 					Name:        "packages, P",
 					Destination: &c.Config.PackageFile,
 				},
+				cli.BoolFlag{
+					Name:	     "clone-only",
+					Destination: &c.Config.IsCloneOnly,
+				},
+				cli.StringFlag{
+					Name:        "directory, -d",
+					Destination: &c.Config.Directory,
+				},
 			},
 			Action: func(ctx *cli.Context) error {
-				urls := []string{}
-				if c.Config.PackageFile != "" {
-					packageFile, err := c.readPackageFile()
-					if err != nil {
-						c.Error = err
-						return nil
-					}
-					for _, pkg := range packageFile.Packages {
-						url, err := c.convertToUrl(pkg)
-						if err != nil {
-							c.Error = err
-							return nil
-						}
-						urls = append(urls, url)
-					}
-				} else {
-					url, err := c.convertToUrl(ctx.Args().First())
-					if err != nil {
-						c.Error = err
-						return nil
-					}
-					urls = []string{url}
-
+				urls, err := c.loadInstallUrls(ctx.Args())
+				if err != nil {
+					c.Error = err
+					return nil
 				}
 				if len(urls) == 0 {
 					c.Error = errors.New("Repository not specified")
@@ -142,16 +133,61 @@ func (c *CLI) Run(args []string) (err error) {
 	return c.Error
 }
 
-func (c *CLI) install(urls []string) error {
+func (c *CLI) loadInstallUrls(args cli.Args) ([]string, error) {
+	urls := []string{}
+	if c.Config.PackageFile != "" {
+		packageFile, err := c.readPackageFile()
+		if err != nil {
+			return nil, err
+		}
+		for _, pkg := range packageFile.Packages {
+			url, err := c.convertToUrl(pkg)
+			if err != nil {
+				return nil, err
+			}
+			urls = append(urls, url)
+		}
+	} else {
+		url, err := c.convertToUrl(args.First())
+		if err != nil {
+			return nil, err
+		}
+		urls = []string{url}
+	}
+	return urls, nil
+}
+
+// Todo: separete CLI class and Installer class.
+func (c *CLI) initialize() error {
 	err := c.checkConfigration()
 	if err != nil {
 		return err
 	}
-	err = c.setClient()
+	if !c.Config.IsCloneOnly {
+		err = c.setClient()
+	}
 	if err != nil {
 		return err
 	}
+	if c.Config.Directory == "" {
+		if c.Config.IsCloneOnly {
+			dir, err := os.Getwd()
+			if err != nil{
+				return err
+			}
+			c.Config.Directory = dir
+		} else {
+			c.Config.Directory = os.TempDir()
+		}
+	}
+	return nil
+}
 
+func (c *CLI) install(urls []string) error {
+	err := c.initialize()
+	if err != nil {
+		return err
+	}
 	for _, url := range urls {
 		r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(/([^@]+))?(@([^/]+))?$`)
 		group := r.FindAllStringSubmatch(url, -1)
@@ -206,6 +242,9 @@ func (c *CLI) readPackageFile() (*PackageFile, error) {
 }
 
 func (c *CLI) checkConfigration() error {
+	if c.Config.IsCloneOnly {
+		return nil
+	}
 	if c.Config.Username == "" {
 		return errors.New("Username is required")
 	}
@@ -216,11 +255,14 @@ func (c *CLI) checkConfigration() error {
 }
 
 func (c *CLI) installToSalesforce(url string, directory string, targetDirectory string, branch string) error {
-	cloneDir := filepath.Join(os.TempDir(), directory)
+	cloneDir := filepath.Join(c.Config.Directory, directory)
 	c.Logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
 	err := c.cloneFromRemoteRepository(cloneDir, url, branch, false)
 	if err != nil {
 		return err
+	}
+	if c.Config.IsCloneOnly {
+		return nil
 	}
 	defer c.cleanTempDirectory(cloneDir)
 	err = c.deployToSalesforce(filepath.Join(cloneDir, targetDirectory))
@@ -244,7 +286,8 @@ func (c *CLI) cloneFromRemoteRepository(directory string, url string, paramBranc
 	}
 	_, err = git.PlainClone(directory, false, &git.CloneOptions{
 		URL:           url,
-		ReferenceName: plumbing.ReferenceName("refs/heads/" + branch),
+		ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branch)),
+		SingleBranch:  true,
 	})
 	if err != nil {
 		if err.Error() != "repository already exists" {
