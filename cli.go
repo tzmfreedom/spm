@@ -265,8 +265,9 @@ func (c *CLI) installToSalesforce(url string, directory string, targetDirectory 
 		return nil
 	}
 	defer c.cleanTempDirectory(cloneDir)
-	c.loadDependencies(cloneDir)
-	err = c.deployToSalesforce(filepath.Join(cloneDir, targetDirectory))
+	targetDirAbsPath := filepath.Join(cloneDir, targetDirectory)
+	c.loadDependencies(targetDirAbsPath)
+	err = c.deployToSalesforce(targetDirAbsPath)
 	if err != nil {
 		return err
 	}
@@ -294,8 +295,7 @@ func (c *CLI) loadDependencies(cloneDir string) error {
 	for _, pkg := range packageFile.Packages {
 		url, err := c.convertToUrl(pkg)
 		if err != nil {
-			c.Error = err
-			return nil
+			return err
 		}
 		urls = append(urls, url)
 	}
