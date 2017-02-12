@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	"github.com/golang/go/src/archive/zip"
-	"github.com/golang/go/src/bytes"
-	"github.com/golang/go/src/path/filepath"
+	"archive/zip"
+	"bytes"
+	"path/filepath"
 )
 
 func zipDirectory(directory string) (*bytes.Buffer, error) {

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"regexp"
+	"time"
 
-	"github.com/golang/go/src/path/filepath"
-	"github.com/golang/go/src/regexp"
-	"github.com/golang/go/src/time"
 	_ "github.com/k0kubun/pp"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing"
@@ -25,7 +25,7 @@ type Config struct {
 	PollSeconds    int
 	TimeoutSeconds int
 	PackageFile    string
-	IsCloneOnly    boolean
+	IsCloneOnly    bool
 	Directory      string
 }
 
