@@ -1,11 +1,11 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"archive/zip"
-	"bytes"
 	"path/filepath"
 )
 
