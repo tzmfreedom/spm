@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -16,7 +17,8 @@ const (
 
 func before() (*CLI, *bytes.Buffer, *bytes.Buffer) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{Logger: NewLogger(outStream, errStream)}
+	cli := NewCli()
+	cli.logger.Reset(outStream, errStream)
 	return cli, outStream, errStream
 }
 
