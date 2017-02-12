@@ -97,18 +97,18 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				err = c.installer.Initialize(c.Config)
-				if err != nil {
-					c.Error = err
-					return nil
-				}
-				urls, err := c.loadInstallUrls(ctx.Args())
+				urls, err := loadInstallUrls(ctx.Args())
 				if err != nil {
 					c.Error = err
 					return nil
 				}
 				if len(urls) == 0 {
 					c.Error = errors.New("Repository not specified")
+					return nil
+				}
+				err = c.installer.Initialize(c.Config)
+				if err != nil {
+					c.Error = err
 					return nil
 				}
 				c.Error = c.installer.Install(urls)
@@ -124,51 +124,3 @@ func (c *CLI) Run(args []string) (err error) {
 	return c.Error
 }
 
-func (c *CLI) loadInstallUrls(args cli.Args) ([]string, error) {
-	urls := []string{}
-	if c.Config.PackageFile != "" {
-		packageFile, err := c.readPackageFile()
-		if err != nil {
-			return nil, err
-		}
-		for _, pkg := range packageFile.Packages {
-			url, err := convertToUrl(pkg)
-			if err != nil {
-				return nil, err
-			}
-			urls = append(urls, url)
-		}
-	} else {
-		url, err := convertToUrl(args.First())
-		if err != nil {
-			return nil, err
-		}
-		urls = []string{url}
-	}
-	return urls, nil
-}
-
-func convertToUrl(target string) (string, error) {
-	if target == "" {
-		return "", errors.New("Repository not specified")
-	}
-	url := target
-	r := regexp.MustCompile(`^[^/]+?/[^/@]+?(/[^@]+?)?(@[^/]+)?$`)
-	if r.MatchString(url) {
-		url = DEFAULT_REPOSITORY + "/" + url
-	}
-	return "https://" + url, nil
-}
-
-func (c *CLI) readPackageFile() (*PackageFile, error) {
-	packageFile := PackageFile{}
-	readBody, err := ioutil.ReadFile(c.Config.PackageFile)
-	if err != nil {
-		return nil, err
-	}
-	err = yaml.Unmarshal([]byte(readBody), &packageFile)
-	if err != nil {
-		return nil, err
-	}
-	return &packageFile, nil
-}

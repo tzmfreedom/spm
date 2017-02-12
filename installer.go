@@ -95,19 +95,6 @@ func (i *SalesforceInstaller) Install(urls []string) error {
 	return nil
 }
 
-func extractInstallParameter(url string) (uri string, dir string, target_dir string, branch string) {
-	r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(/([^@]+))?(@([^/]+))?$`)
-	group := r.FindAllStringSubmatch(url, -1)
-	uri = group[0][1]
-	dir = group[0][4]
-	target_dir = group[0][6]
-	branch = group[0][8]
-	if branch == "" {
-		branch = "master"
-	}
-	return
-}
-
 func (i *SalesforceInstaller) installToSalesforce(url string, directory string, targetDirectory string, branch string) error {
 	cloneDir := filepath.Join(i.Config.Directory, directory)
 	i.logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
@@ -118,16 +105,9 @@ func (i *SalesforceInstaller) installToSalesforce(url string, directory string, 
 	if i.Config.IsCloneOnly {
 		return nil
 	}
-	defer i.cleanTempDirectory(cloneDir)
+	defer cleanTempDirectory(cloneDir)
 	err = i.deployToSalesforce(filepath.Join(cloneDir, targetDirectory))
 	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (i *SalesforceInstaller) cleanTempDirectory(directory string) error {
-	if err := os.RemoveAll(directory); err != nil {
 		return err
 	}
 	return nil
