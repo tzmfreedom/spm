@@ -2,12 +2,8 @@ package main
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 
-	yaml "gopkg.in/yaml.v2"
-
-	"github.com/golang/go/src/regexp"
 	"github.com/urfave/cli"
 )
 
@@ -97,7 +93,7 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				urls, err := loadInstallUrls(ctx.Args())
+				urls, err := loadInstallUrls(c.Config.PackageFile, ctx.Args().First())
 				if err != nil {
 					c.Error = err
 					return nil
@@ -123,4 +119,3 @@ func (c *CLI) Run(args []string) (err error) {
 	}
 	return c.Error
 }
-

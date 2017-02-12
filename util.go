@@ -3,11 +3,14 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"github.com/golang/go/src/regexp"
+	"regexp"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 func zipDirectory(directory string) (*bytes.Buffer, error) {
@@ -86,10 +89,10 @@ func extractInstallParameter(url string) (uri string, dir string, target_dir str
 	return
 }
 
-func loadInstallUrls(args cli.Args) ([]string, error) {
+func loadInstallUrls(packageFile string, targetName string) ([]string, error) {
 	urls := []string{}
-	if c.Config.PackageFile != "" {
-		packageFile, err := readPackageFile(c.Config.PackageFile)
+	if packageFile != "" {
+		packageFile, err := readPackageFile(packageFile)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +104,7 @@ func loadInstallUrls(args cli.Args) ([]string, error) {
 			urls = append(urls, url)
 		}
 	} else {
-		url, err := convertToUrl(args.First())
+		url, err := convertToUrl(targetName)
 		if err != nil {
 			return nil, err
 		}

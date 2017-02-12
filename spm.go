@@ -1,8 +1,6 @@
 package main
 
-import (
-	"os"
-)
+import "os"
 
 const (
 	ExitCodeOK int = iota

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"time"
 
 	_ "github.com/k0kubun/pp"
@@ -132,7 +131,7 @@ func (i *SalesforceInstaller) cloneFromRemoteRepository(directory string, url st
 		}
 		i.logger.Warningf("repository non empty: %s", directory)
 		i.logger.Infof("remove directory: %s", directory)
-		err = i.cleanTempDirectory(directory)
+		err = cleanTempDirectory(directory)
 		if err != nil {
 			return
 		}
