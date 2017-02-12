@@ -45,3 +45,8 @@ func (l *Logger) Error(args ...interface{}) {
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.OutLogger.Errorf(format, args...)
 }
+
+func (l *Logger) Reset(outStream io.Writer, errStream io.Writer) {
+	l.OutLogger.Out = outStream
+	l.ErrLogger.Out = errStream
+}

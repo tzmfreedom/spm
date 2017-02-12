@@ -18,7 +18,7 @@ const (
 func before() (*CLI, *bytes.Buffer, *bytes.Buffer) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := NewCli()
-	cli.logger = NewLogger(outStream, errStream)
+	cli.logger.Reset(outStream, errStream)
 	return cli, outStream, errStream
 }
 
