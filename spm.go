@@ -10,7 +10,7 @@ const (
 )
 
 func main() {
-	cli := &CLI{}
+	cli := NewCli()
 	err := cli.Run(os.Args)
 	statusCode := ExitCodeOK
 	if err != nil {

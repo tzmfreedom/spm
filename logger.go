@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/Sirupsen/logrus"
 	"io"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type Logger struct {
