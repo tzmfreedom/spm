@@ -1,8 +1,6 @@
 package main
 
-import (
-	"os"
-)
+import "os"
 
 const (
 	ExitCodeOK int = iota
@@ -10,7 +8,7 @@ const (
 )
 
 func main() {
-	cli := &CLI{}
+	cli := NewCli()
 	err := cli.Run(os.Args)
 	statusCode := ExitCodeOK
 	if err != nil {
