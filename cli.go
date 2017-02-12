@@ -30,17 +30,14 @@ const (
 func NewCli() *CLI {
 	logger := NewLogger(os.Stdout, os.Stderr)
 	c := &CLI{
-		installer: NewSalesforceInstaller(&Config{}, logger),
+		installer: NewSalesforceInstaller(logger),
 		logger:    logger,
+		Config:    &Config{},
 	}
 	return c
 }
 
 func (c *CLI) Run(args []string) (err error) {
-	err = c.installer.Initialize()
-	if err != nil {
-		return err
-	}
 	app := cli.NewApp()
 	app.Name = "spm"
 
@@ -100,6 +97,11 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
+				err = c.installer.Initialize(c.Config)
+				if err != nil {
+					c.Error = err
+					return nil
+				}
 				urls, err := c.loadInstallUrls(ctx.Args())
 				if err != nil {
 					c.Error = err
