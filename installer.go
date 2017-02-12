@@ -14,6 +14,7 @@ import (
 )
 
 type Installer interface {
+	Initialize() error
 	Install(urls []string) error
 }
 
@@ -35,16 +36,14 @@ type SalesforceInstaller struct {
 	logger *Logger
 }
 
-func NewSalesforceInstaller(config *Config, logger *Logger) (i *SalesforceInstaller, err error) {
-	i = &SalesforceInstaller{
+func NewSalesforceInstaller(config *Config, logger *Logger) *SalesforceInstaller {
+	return &SalesforceInstaller{
 		Config: config,
 		logger: logger,
 	}
-	err = i.initialize()
-	return
 }
 
-func (i *SalesforceInstaller) initialize() (err error) {
+func (i *SalesforceInstaller) Initialize() (err error) {
 	if i.Config.IsCloneOnly {
 		return nil
 	}

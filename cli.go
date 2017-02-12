@@ -12,7 +12,7 @@ import (
 )
 
 type CLI struct {
-	installer *Installer
+	installer Installer
 	Config    *Config
 	logger    *Logger
 	Error     error
@@ -37,6 +37,10 @@ func NewCli() *CLI {
 }
 
 func (c *CLI) Run(args []string) (err error) {
+	err = c.installer.Initialize()
+	if err != nil {
+		return err
+	}
 	app := cli.NewApp()
 	app.Name = "spm"
 
@@ -105,8 +109,7 @@ func (c *CLI) Run(args []string) (err error) {
 					c.Error = errors.New("Repository not specified")
 					return nil
 				}
-				// c.Error = c.install(urls)
-				c.Error = c.Installer.Install()
+				c.Error = c.installer.Install(urls)
 				return nil
 			},
 		},
@@ -114,7 +117,7 @@ func (c *CLI) Run(args []string) (err error) {
 
 	app.Run(args)
 	if c.Error != nil {
-		c.Logger.Error(c.Error)
+		c.logger.Error(c.Error)
 	}
 	return c.Error
 }
