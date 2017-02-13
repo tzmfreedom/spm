@@ -10,7 +10,7 @@ import (
 type CLI struct {
 	installer Installer
 	Config    *Config
-	logger    *Logger
+	logger    Logger
 	Error     error
 }
 
@@ -24,7 +24,7 @@ const (
 )
 
 func NewCli() *CLI {
-	logger := NewLogger(os.Stdout, os.Stderr)
+	logger := NewSpmLogger(os.Stdout, os.Stderr)
 	c := &CLI{
 		installer: NewSalesforceInstaller(logger),
 		logger:    logger,

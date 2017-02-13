@@ -32,11 +32,11 @@ type Config struct {
 type SalesforceInstaller struct {
 	Config *Config
 	Client *ForceClient
-	logger *Logger
+	logger Logger
 	urlStack []string
 }
 
-func NewSalesforceInstaller(logger *Logger) *SalesforceInstaller {
+func NewSalesforceInstaller(logger Logger) *SalesforceInstaller {
 	return &SalesforceInstaller{
 		logger: logger,
 		urlStack: []string{},
