@@ -100,7 +100,7 @@ func (i *SalesforceInstaller) installToSalesforce(url string, directory string, 
 	cloneDir := filepath.Join(i.Config.Directory, directory)
 	i.addUrlStack(url)
 	defer i.popUrlStack()
-	i.logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
+	i.logger.Infof("Clone repository from %s (branch: %s)", url, branch)
 	err := i.cloneFromRemoteRepository(cloneDir, url, branch, false)
 	if err != nil {
 		return err
