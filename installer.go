@@ -33,11 +33,13 @@ type SalesforceInstaller struct {
 	Config *Config
 	Client *ForceClient
 	logger *Logger
+	urlStack []string
 }
 
 func NewSalesforceInstaller(logger *Logger) *SalesforceInstaller {
 	return &SalesforceInstaller{
 		logger: logger,
+		urlStack: []string{},
 	}
 }
 
@@ -96,6 +98,8 @@ func (i *SalesforceInstaller) Install(urls []string) error {
 
 func (i *SalesforceInstaller) installToSalesforce(url string, directory string, targetDirectory string, branch string) error {
 	cloneDir := filepath.Join(i.Config.Directory, directory)
+	i.addUrlStack(url)
+	defer i.popUrlStack()
 	i.logger.Info("Clone repository from " + url + " (branch: " + branch + ")")
 	err := i.cloneFromRemoteRepository(cloneDir, url, branch, false)
 	if err != nil {
@@ -105,7 +109,12 @@ func (i *SalesforceInstaller) installToSalesforce(url string, directory string, 
 		return nil
 	}
 	defer cleanTempDirectory(cloneDir)
-	err = i.deployToSalesforce(filepath.Join(cloneDir, targetDirectory))
+	targetDirAbsPath := filepath.Join(cloneDir, targetDirectory)
+	err = i.loadDependencies(targetDirAbsPath)
+	if err != nil {
+		return err
+	}
+	err = i.deployToSalesforce(targetDirAbsPath)
 	if err != nil {
 		return err
 	}
@@ -155,7 +164,7 @@ func (i *SalesforceInstaller) deployToSalesforce(directory string) error {
 	if err != nil {
 		return err
 	}
-	i.logger.Info("Deploy is successful")
+	i.logger.Infof("%s: Deploy is successful", i.getTopStack())
 
 	return nil
 }
@@ -164,7 +173,7 @@ func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 	totalTime := 0
 	for {
 		time.Sleep(time.Duration(i.Config.PollSeconds) * time.Second)
-		i.logger.Info("Check Deploy Result...")
+		i.logger.Infof("%s: Check Deploy Result...", i.getTopStack())
 
 		response, err := i.Client.CheckDeployStatus(resultId)
 		if err != nil {
@@ -176,9 +185,43 @@ func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 		if i.Config.TimeoutSeconds != 0 {
 			totalTime += i.Config.PollSeconds
 			if totalTime > i.Config.TimeoutSeconds {
-				i.logger.Error("Deploy is timeout. Please check release status for the deployment")
+				i.logger.Errorf("%s: Deploy is timeout. Please check release status for the deployment", i.getTopStack())
 				return nil
 			}
 		}
 	}
+}
+
+func (i *SalesforceInstaller) loadDependencies(cloneDir string) error {
+	targetFile := filepath.Join(cloneDir, "package.yml")
+	_, err := os.Stat(targetFile)
+	if err != nil {
+		return nil
+	}
+	urls := []string{}
+	packageFile, err := readPackageFile(targetFile)
+	if err != nil {
+		return err
+	}
+	for _, pkg := range packageFile.Packages {
+		url, err := convertToUrl(pkg)
+		if err != nil {
+			return err
+		}
+		urls = append(urls, url)
+	}
+	return i.Install(urls)
+}
+
+func (i *SalesforceInstaller) addUrlStack(url string) error {
+	i.urlStack = append(i.urlStack, url)
+	return nil
+}
+
+func (i *SalesforceInstaller) getTopStack() string {
+	return i.urlStack[len(i.urlStack)-1]
+}
+
+func (i *SalesforceInstaller) popUrlStack() {
+	i.urlStack = i.urlStack[:len(i.urlStack)-1]
 }
