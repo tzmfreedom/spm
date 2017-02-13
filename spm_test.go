@@ -32,6 +32,16 @@ func TestInstallSuccess(t *testing.T) {
 	assert.Contains(t, outString, "Deploy is successful")
 }
 
+func TestInstallSuccessForSubdir(t *testing.T) {
+	cli, outStream, _ := before()
+	args := strings.Split(fmt.Sprintf("spm install %s -u %s -p %s", os.Getenv("REPOSITORY_SUBDIR"), os.Getenv("USERNAME"), os.Getenv("PASSWORD")), " ")
+	cli.Run(args)
+	outString := outStream.String()
+	assert.Contains(t, outString, fmt.Sprintf("Clone repository from https://github.com/"))
+	assert.Contains(t, outString, "Check Deploy Result...")
+	assert.Contains(t, outString, "Deploy is successful")
+}
+
 func TestInstallFailureNoUsername(t *testing.T) {
 	cli, outStream, _ := before()
 	args := strings.Split(fmt.Sprintf("spm install %s -p %s", os.Getenv("REPOSITORY"), os.Getenv("PASSWORD")), " ")
