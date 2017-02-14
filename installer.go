@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "github.com/k0kubun/pp"
 	"srcd.works/go-git.v4"
 	"srcd.works/go-git.v4/plumbing"
 )
+
+const DEFAULT_REPOSITORY string = "github.com"
 
 type Installer interface {
 	Initialize(config *Config) error
@@ -30,15 +31,15 @@ type Config struct {
 }
 
 type SalesforceInstaller struct {
-	Config *Config
-	Client *ForceClient
-	logger Logger
+	Config   *Config
+	Client   *ForceClient
+	logger   Logger
 	urlStack []string
 }
 
 func NewSalesforceInstaller(logger Logger) *SalesforceInstaller {
 	return &SalesforceInstaller{
-		logger: logger,
+		logger:   logger,
 		urlStack: []string{},
 	}
 }

@@ -19,8 +19,7 @@ type PackageFile struct {
 }
 
 const (
-	APP_VERSION        string = "0.1.0"
-	DEFAULT_REPOSITORY string = "github.com"
+	APP_VERSION string = "0.1.1"
 )
 
 func NewCli() *CLI {

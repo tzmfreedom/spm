@@ -137,4 +137,3 @@ func readPackageFile(packageFileStr string) (*PackageFile, error) {
 	}
 	return &packageFile, nil
 }
-
