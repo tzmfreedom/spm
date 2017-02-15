@@ -10,7 +10,7 @@ import (
 type CLI struct {
 	installer Installer
 	Config    *Config
-	logger    *Logger
+	logger    Logger
 	Error     error
 }
 
@@ -19,12 +19,11 @@ type PackageFile struct {
 }
 
 const (
-	APP_VERSION        string = "0.1.0"
-	DEFAULT_REPOSITORY string = "github.com"
+	APP_VERSION string = "0.1.1"
 )
 
 func NewCli() *CLI {
-	logger := NewLogger(os.Stdout, os.Stderr)
+	logger := NewSpmLogger(os.Stdout, os.Stderr)
 	c := &CLI{
 		installer: NewSalesforceInstaller(logger),
 		logger:    logger,
