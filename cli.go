@@ -163,7 +163,7 @@ func (c *CLI) Run(args []string) (err error) {
 					c.Error = err
 					return nil
 				}
-				c.Error = c.downloader.Download()
+				_, c.Error = c.downloader.Download()
 				return nil
 			},
 		},
