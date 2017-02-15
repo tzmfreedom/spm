@@ -42,3 +42,37 @@ func (client *ForceClient) CheckDeployStatus(resultId *ID) (*CheckDeployStatusRe
 	check_request := CheckDeployStatus{AsyncProcessId: resultId, IncludeDetails: true}
 	return client.portType.CheckDeployStatus(&check_request)
 }
+
+func (client *ForceClient) Retrieve() (*RetrieveResponse, error) {
+	request := Retrieve{
+		RetrieveRequest: &RetrieveRequest{
+			ApiVersion: 38,
+			Unpackaged: &Package{
+				Types: []*PackageTypeMembers{
+					&PackageTypeMembers{
+						Name:    "ApexClass",
+						Members: []string{"HelloSpm_Dep"},
+					},
+				},
+			},
+		},
+	}
+	sessionHeader := SessionHeader{
+		SessionId: client.loginResult.SessionId,
+	}
+	client.portType.SetHeader(&sessionHeader)
+	client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
+	return client.portType.Retrieve(&request)
+}
+
+func (client *ForceClient) CheckRetrieveStatus(id *ID) (*CheckRetrieveStatusResponse, error) {
+	request := CheckRetrieveStatus{
+		AsyncProcessId: id,
+	}
+	sessionHeader := SessionHeader{
+		SessionId: client.loginResult.SessionId,
+	}
+	client.portType.SetHeader(&sessionHeader)
+	client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
+	return client.portType.CheckRetrieveStatus(&request)
+}
