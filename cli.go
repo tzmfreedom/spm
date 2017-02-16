@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 
 	"github.com/urfave/cli"
@@ -158,12 +159,17 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				err = c.installer.Initialize(c.Config)
+				err = c.downloader.Initialize(c.Config)
 				if err != nil {
 					c.Error = err
 					return nil
 				}
-				_, c.Error = c.downloader.Download()
+				buf, err := c.downloader.Download()
+				if err != nil {
+					c.Error = err
+					return nil
+				}
+				ioutil.WriteFile("./hoge.zip", buf, os.ModePerm)
 				return nil
 			},
 		},

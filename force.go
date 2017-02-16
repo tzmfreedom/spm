@@ -43,26 +43,13 @@ func (client *ForceClient) CheckDeployStatus(resultId *ID) (*CheckDeployStatusRe
 	return client.portType.CheckDeployStatus(&check_request)
 }
 
-func (client *ForceClient) Retrieve() (*RetrieveResponse, error) {
-	request := Retrieve{
-		RetrieveRequest: &RetrieveRequest{
-			ApiVersion: 38,
-			Unpackaged: &Package{
-				Types: []*PackageTypeMembers{
-					&PackageTypeMembers{
-						Name:    "ApexClass",
-						Members: []string{"HelloSpm_Dep"},
-					},
-				},
-			},
-		},
-	}
+func (client *ForceClient) Retrieve(request *Retrieve) (*RetrieveResponse, error) {
 	sessionHeader := SessionHeader{
 		SessionId: client.loginResult.SessionId,
 	}
 	client.portType.SetHeader(&sessionHeader)
 	client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
-	return client.portType.Retrieve(&request)
+	return client.portType.Retrieve(request)
 }
 
 func (client *ForceClient) CheckRetrieveStatus(id *ID) (*CheckRetrieveStatusResponse, error) {
@@ -75,4 +62,22 @@ func (client *ForceClient) CheckRetrieveStatus(id *ID) (*CheckRetrieveStatusResp
 	client.portType.SetHeader(&sessionHeader)
 	client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
 	return client.portType.CheckRetrieveStatus(&request)
+}
+
+func createRetrieveRequest(metaPackageFile *MetaPackageFile) *Retrieve {
+	request := &Retrieve{
+		RetrieveRequest: &RetrieveRequest{
+			ApiVersion: metaPackageFile.Version,
+			Unpackaged: &Package{},
+		},
+	}
+	types := []*PackageTypeMembers{}
+	for _, metaType := range metaPackageFile.Types {
+		types = append(types, &PackageTypeMembers{
+			Name:    metaType.Name,
+			Members: metaType.Members,
+		})
+	}
+	request.RetrieveRequest.Unpackaged.Types = types
+	return request
 }

@@ -15,7 +15,7 @@ type Downloader interface {
 }
 
 type MetaPackageFile struct {
-	Version string  `toml:"version"`
+	Version float64 `toml:"version"`
 	Types   []*Type `toml:"types"`
 }
 
@@ -49,16 +49,6 @@ func (i *SalesforceDownloader) Initialize(config *Config) (err error) {
 	if err != nil {
 		return err
 	}
-	//i.Config.Directory = os.TempDir()
-	buf, err := ioutil.ReadFile(i.Config.PackageFile)
-	if err != nil {
-		return err
-	}
-	packages := &MetaPackageFile{}
-	err = toml.Unmarshal(buf, packages)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -72,10 +62,20 @@ func (i *SalesforceDownloader) setClient() error {
 }
 
 func (i *SalesforceDownloader) Download() (buf []byte, err error) {
-	i.Client.Retrieve()
-	r, err := i.Client.Retrieve()
-	time.Sleep(10 * time.Second)
+	buf, err = ioutil.ReadFile(i.Config.PackageFile)
+	if err != nil {
+		return nil, err
+	}
+	packages := &MetaPackageFile{}
+	err = toml.Unmarshal(buf, packages)
+	if err != nil {
+		return nil, err
+	}
+	i.logger.Info("Start Retrieve Request...")
+	r, err := i.Client.Retrieve(createRetrieveRequest(packages))
 	for {
+		time.Sleep(2 * time.Second)
+		i.logger.Info("Check Retrieve Status...")
 		ret_res, err := i.Client.CheckRetrieveStatus(r.Result.Id)
 		if err != nil {
 			return nil, err
