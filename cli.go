@@ -169,7 +169,8 @@ func (c *CLI) Run(args []string) (err error) {
 					c.Error = err
 					return nil
 				}
-				ioutil.WriteFile("./hoge.zip", buf, os.ModePerm)
+				ioutil.WriteFile("./tmp.zip", buf, 0400)
+				unzip(buf, "tmp")
 				return nil
 			},
 		},
