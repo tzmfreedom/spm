@@ -121,9 +121,9 @@ func convertToUrl(target string) (string, error) {
 	url := target
 	r := regexp.MustCompile(`^[^/]+?/[^/@]+?(/[^@]+?)?(@[^/]+)?$`)
 	if r.MatchString(url) {
-		url = DEFAULT_REPOSITORY + "/" + url
+		url = fmt.Sprintf("%s/%s", DEFAULT_REPOSITORY, url)
 	}
-	return "https://" + url, nil
+	return fmt.Sprintf("https://%s", url), nil
 }
 
 func readPackageFile(packageFileStr string) (*PackageFile, error) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 )
 
 type ForceClient struct {
@@ -10,7 +11,7 @@ type ForceClient struct {
 }
 
 func NewForceClient(endpoint string, apiversion string) *ForceClient {
-	portType := NewMetadataPortType("https://"+endpoint+"/services/Soap/u/"+apiversion, true, nil)
+	portType := NewMetadataPortType(fmt.Sprintf("https://%s/services/Soap/u/%s", endpoint, apiversion), true, nil)
 	return &ForceClient{portType: portType}
 }
 

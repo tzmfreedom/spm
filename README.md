@@ -48,6 +48,14 @@ OPTIONS:
 $ spm install github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD}
 ```
 
+You can specify repository with following format.
+```
+{REMOTE_REPOSITORY_HOST}/{USER}/{REPOSITORY} # i.g. github.com/tzmfreedom/apex_tdclient
+{USER}/{REPOSITORY} # i.g. tzmfreedom/apex_tdclient
+{USER}/{REPOSITORY}/{SUB_DIRECTORY} # i.g. tzmfreedom/spm/sample/repositories/dependencies
+```
+
+
 * Install packages from package.yml
 ```bash
 $ spm install -u {USERNAME} -p {PASSWORD} -P package.yml
