@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	FAILURE_PACKAGE_YML_BLANK      = "./test/blank.yml"
-	FAILURE_PACKAGE_YML_REPO_BLANK = "./test/repo-blank.yml"
+	FAILURE_PACKAGE_YML_BLANK      = "./test/fixture/blank.yml"
+	FAILURE_PACKAGE_YML_REPO_BLANK = "./test/fixture/repo-blank.yml"
+	SUCCESS_PACKAGE_TOML = "./test/fixture/package.toml"
 )
 
 func before() (*CLI, *bytes.Buffer, *bytes.Buffer) {
@@ -96,4 +97,39 @@ func TestInstallFailurePackageYmlRepoBlank(t *testing.T) {
 	_ = cli.Run(args)
 	outString := outStream.String()
 	assert.Contains(t, outString, "Repository not specified")
+}
+
+
+func TestDownloadSuccess(t *testing.T) {
+	cli, outStream, _ := before()
+	args := strings.Split(fmt.Sprintf("spm clone -u %s -p %s -P %s", os.Getenv("USERNAME"), os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
+	cli.Run(args)
+	outString := outStream.String()
+	assert.Contains(t, outString, "Start Retrieve Request...")
+	assert.Contains(t, outString, "Check Retrieve Status...")
+	assertIsExists(t, "tmp/unpackaged/classes/HelloSpm_Dep.cls")
+	assertIsExists(t, "tmp/unpackaged/classes/HelloSpm_Dep.cls-meta.xml")
+	assertIsExists(t, "tmp/unpackaged/package.xml")
+	assert.Nil(t, os.RemoveAll("./tmp"))
+}
+
+func TestDownloadFailureNoUsername(t *testing.T) {
+	cli, outStream, _ := before()
+	args := strings.Split(fmt.Sprintf("spm clone -p %s -P %s", os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
+	_ = cli.Run(args)
+	outString := outStream.String()
+	assert.Contains(t, outString, "Username is required")
+}
+
+func TestDownloadFailureNoPassword(t *testing.T) {
+	cli, outStream, _ := before()
+	args := strings.Split(fmt.Sprintf("spm clone -u %s -P %s", os.Getenv("USERNAME"), SUCCESS_PACKAGE_TOML), " ")
+	_ = cli.Run(args)
+	outString := outStream.String()
+	assert.Contains(t, outString, "Password is required")
+}
+
+func assertIsExists(t *testing.T, filename string) {
+	_, err := os.Stat(filename)
+	assert.Nil(t, err)
 }
