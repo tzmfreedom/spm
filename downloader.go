@@ -27,10 +27,10 @@ type Type struct {
 type SalesforceDownloader struct {
 	Config *Config
 	Client *ForceClient
-	logger *Logger
+	logger Logger
 }
 
-func NewSalesforceDownloader(logger *Logger) *SalesforceDownloader {
+func NewSalesforceDownloader(logger Logger) *SalesforceDownloader {
 	return &SalesforceDownloader{
 		logger: logger,
 	}

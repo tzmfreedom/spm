@@ -11,7 +11,7 @@ type CLI struct {
 	installer  Installer
 	downloader Downloader
 	Config     *Config
-	logger     *Logger
+	logger     Logger
 	Error      error
 }
 
