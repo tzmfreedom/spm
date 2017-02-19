@@ -30,15 +30,15 @@ type Config struct {
 }
 
 type SalesforceInstaller struct {
-	Config *Config
-	Client *ForceClient
-	logger *Logger
+	Config   *Config
+	Client   *ForceClient
+	logger   *Logger
 	urlStack []string
 }
 
 func NewSalesforceInstaller(logger *Logger) *SalesforceInstaller {
 	return &SalesforceInstaller{
-		logger: logger,
+		logger:   logger,
 		urlStack: []string{},
 	}
 }

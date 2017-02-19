@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 
 	"github.com/urfave/cli"
@@ -157,6 +156,11 @@ func (c *CLI) Run(args []string) (err error) {
 					Name:        "package, P",
 					Destination: &c.Config.PackageFile,
 				},
+				cli.StringFlag{
+					Name:        "directory, d",
+					Value:       "tmp",
+					Destination: &c.Config.Directory,
+				},
 			},
 			Action: func(ctx *cli.Context) error {
 				err = c.downloader.Initialize(c.Config)
@@ -169,8 +173,11 @@ func (c *CLI) Run(args []string) (err error) {
 					c.Error = err
 					return nil
 				}
-				ioutil.WriteFile("./tmp.zip", buf, 0400)
-				unzip(buf, "tmp")
+				err = unzip(buf, c.Config.Directory)
+				if err != nil {
+					c.Error = err
+					return nil
+				}
 				return nil
 			},
 		},
