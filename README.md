@@ -68,6 +68,45 @@ Sandbox
 $ spm install github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD} -e test.salesforce.com
 ```
 
+## Download metadata from salesforce
+
+```bash
+$ spm clone -u {USERNAME} -p {PASSWORD} -P {PACKAGE_FILE}
+```
+
+### Package File Format
+
+The package file format for downloading from salesforce is toml.
+
+* example
+```toml
+version = 37.0
+
+[[types]]
+name = "ApexClass"
+members = ["Hoge", "Fuga"]
+
+[[types]]
+name = "CustomObject"
+members = ["Account", "Contact"]
+
+[[types]]
+name = "ApexPage"
+members = ["HogePage"]
+
+[[types]]
+name = "ApexTrigger"
+members = ["HogeTrigger"]
+
+[[types]]
+name = "Layout"
+members = ["Task-Task Layout"]
+
+[[types]]
+name = "Profile"
+members = ["Admin"]
+```
+
 ## Contribute
 
 Just send pull request if needed or fill an issue!
