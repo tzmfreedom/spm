@@ -4624,11 +4624,11 @@ type RetrieveResult struct {
 
 	ErrorStatusCode *StatusCode `xml:"errorStatusCode,omitempty"`
 
-	FileProperties []*FileProperties `xml:"fileProperties,omitempty"`
+	FileProperties []*FileProperties `xml:"FileProperties,omitempty"`
 
 	Id string `xml:"id,omitempty"`
 
-	Messages []*RetrieveMessage `xml:"messages,omitempty"`
+	Messages []*RetrieveMessage `xml:"RetrieveMessages,omitempty"`
 
 	Status *RetrieveStatus `xml:"status,omitempty"`
 
@@ -10686,10 +10686,6 @@ type OrganizationSettingsDetail struct {
 }
 
 type Package struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata Package"`
-
-	*Metadata
-
 	ApiAccessLevel *APIAccessLevel `xml:"apiAccessLevel,omitempty"`
 
 	Description string `xml:"description,omitempty"`
@@ -10730,8 +10726,6 @@ type ProfileObjectPermissions struct {
 }
 
 type PackageTypeMembers struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata PackageTypeMembers"`
-
 	Members []string `xml:"members,omitempty"`
 
 	Name string `xml:"name,omitempty"`
@@ -12889,8 +12883,6 @@ type ReadResult struct {
 }
 
 type RetrieveRequest struct {
-	XMLName xml.Name `xml:"http://soap.sforce.com/2006/04/metadata RetrieveRequest"`
-
 	ApiVersion float64 `xml:"apiVersion,omitempty"`
 
 	PackageNames []string `xml:"packageNames,omitempty"`
@@ -12991,7 +12983,7 @@ func (service *MetadataPortType) CheckDeployStatus(request *CheckDeployStatus) (
 /* Check the current status of an asyncronous deploy call. */
 func (service *MetadataPortType) CheckRetrieveStatus(request *CheckRetrieveStatus) (*CheckRetrieveStatusResponse, error) {
 	response := new(CheckRetrieveStatusResponse)
-	err := service.client.Call("", request, response)
+	err := service.client.Call("''", request, response)
 	if err != nil {
 		return nil, err
 	}
@@ -13102,7 +13094,7 @@ func (service *MetadataPortType) RenameMetadata(request *RenameMetadata) (*Renam
 /* Retrieves a set of individually specified metadata entries. */
 func (service *MetadataPortType) Retrieve(request *Retrieve) (*RetrieveResponse, error) {
 	response := new(RetrieveResponse)
-	err := service.client.Call("", request, response)
+	err := service.client.Call("''", request, response)
 	if err != nil {
 		return nil, err
 	}
@@ -13317,7 +13309,6 @@ func (s *SOAPClient) Call(soapAction string, request, response interface{}) erro
 		log.Println("empty response")
 		return nil
 	}
-	//log.Println(string(rawbody))
 
 	respEnvelope := new(SOAPEnvelope)
 	respEnvelope.Body = SOAPBody{Content: response}

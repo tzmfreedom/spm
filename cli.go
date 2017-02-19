@@ -8,10 +8,11 @@ import (
 )
 
 type CLI struct {
-	installer Installer
-	Config    *Config
-	logger    Logger
-	Error     error
+	installer  Installer
+	downloader Downloader
+	Config     *Config
+	logger     Logger
+	Error      error
 }
 
 type PackageFile struct {
@@ -25,9 +26,10 @@ const (
 func NewCli() *CLI {
 	logger := NewSpmLogger(os.Stdout, os.Stderr)
 	c := &CLI{
-		installer: NewSalesforceInstaller(logger),
-		logger:    logger,
-		Config:    &Config{},
+		installer:  NewSalesforceInstaller(logger),
+		downloader: NewSalesforceDownloader(logger),
+		logger:     logger,
+		Config:     &Config{},
 	}
 	return c
 }
@@ -87,7 +89,7 @@ func (c *CLI) Run(args []string) (err error) {
 					Destination: &c.Config.IsCloneOnly,
 				},
 				cli.StringFlag{
-					Name:        "directory, -d",
+					Name:        "directory, d",
 					Destination: &c.Config.Directory,
 				},
 			},
@@ -107,6 +109,75 @@ func (c *CLI) Run(args []string) (err error) {
 					return nil
 				}
 				c.Error = c.installer.Install(urls)
+				return nil
+			},
+		},
+		{
+			Name:    "clone",
+			Aliases: []string{"c"},
+			Usage:   "Download metadata from salesforce organization",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "username, u",
+					Destination: &c.Config.Username,
+					EnvVar:      "SF_USERNAME",
+				},
+				cli.StringFlag{
+					Name:        "password, p",
+					Destination: &c.Config.Password,
+					EnvVar:      "SF_PASSWORD",
+				},
+				cli.StringFlag{
+					Name:        "endpoint, e",
+					Value:       "login.salesforce.com",
+					Destination: &c.Config.Endpoint,
+					EnvVar:      "SF_ENDPOINT",
+				},
+				cli.StringFlag{
+					Name:        "apiversion",
+					Value:       "38.0",
+					Destination: &c.Config.ApiVersion,
+					EnvVar:      "SF_APIVERSION",
+				},
+				cli.IntFlag{
+					Name:        "pollSeconds",
+					Value:       5,
+					Destination: &c.Config.PollSeconds,
+					EnvVar:      "SF_POLLSECONDS",
+				},
+				cli.IntFlag{
+					Name:        "timeoutSeconds",
+					Value:       0,
+					Destination: &c.Config.TimeoutSeconds,
+					EnvVar:      "SF_TIMEOUTSECONDS",
+				},
+				cli.StringFlag{
+					Name:        "package, P",
+					Value:	     "./package.toml",
+					Destination: &c.Config.PackageFile,
+				},
+				cli.StringFlag{
+					Name:        "directory, d",
+					Value:       "tmp",
+					Destination: &c.Config.Directory,
+				},
+			},
+			Action: func(ctx *cli.Context) error {
+				err = c.downloader.Initialize(c.Config)
+				if err != nil {
+					c.Error = err
+					return nil
+				}
+				buf, err := c.downloader.Download()
+				if err != nil {
+					c.Error = err
+					return nil
+				}
+				err = unzip(buf, c.Config.Directory)
+				if err != nil {
+					c.Error = err
+					return nil
+				}
 				return nil
 			},
 		},

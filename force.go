@@ -43,3 +43,42 @@ func (client *ForceClient) CheckDeployStatus(resultId *ID) (*CheckDeployStatusRe
 	check_request := CheckDeployStatus{AsyncProcessId: resultId, IncludeDetails: true}
 	return client.portType.CheckDeployStatus(&check_request)
 }
+
+func (client *ForceClient) Retrieve(request *Retrieve) (*RetrieveResponse, error) {
+	sessionHeader := SessionHeader{
+		SessionId: client.loginResult.SessionId,
+	}
+	client.portType.SetHeader(&sessionHeader)
+	client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
+	return client.portType.Retrieve(request)
+}
+
+func (client *ForceClient) CheckRetrieveStatus(id *ID) (*CheckRetrieveStatusResponse, error) {
+	request := CheckRetrieveStatus{
+		AsyncProcessId: id,
+	}
+	sessionHeader := SessionHeader{
+		SessionId: client.loginResult.SessionId,
+	}
+	client.portType.SetHeader(&sessionHeader)
+	client.portType.SetServerUrl(client.loginResult.MetadataServerUrl)
+	return client.portType.CheckRetrieveStatus(&request)
+}
+
+func createRetrieveRequest(metaPackageFile *MetaPackageFile) *Retrieve {
+	request := &Retrieve{
+		RetrieveRequest: &RetrieveRequest{
+			ApiVersion: metaPackageFile.Version,
+			Unpackaged: &Package{},
+		},
+	}
+	types := []*PackageTypeMembers{}
+	for _, metaType := range metaPackageFile.Types {
+		types = append(types, &PackageTypeMembers{
+			Name:    metaType.Name,
+			Members: metaType.Members,
+		})
+	}
+	request.RetrieveRequest.Unpackaged.Types = types
+	return request
+}
