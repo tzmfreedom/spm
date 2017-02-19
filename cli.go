@@ -154,6 +154,7 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 				cli.StringFlag{
 					Name:        "package, P",
+					Value:	     "./package.toml",
 					Destination: &c.Config.PackageFile,
 				},
 				cli.StringFlag{
