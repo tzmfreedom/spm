@@ -15,7 +15,6 @@ import (
 )
 
 func extractInstallParameter(url string) (uri string, dir string, target_dir string, branch string) {
-	fmt.Println(url)
 	r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(/([^@]+))?(@([^/]+))?$`)
 	group := r.FindAllStringSubmatch(url, -1)
 	uri = group[0][1]
