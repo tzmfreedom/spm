@@ -1,5 +1,7 @@
-.PHONY: test uninstall
-all: build
+.PHONY: test install uninstall
+
+test: 
+	@go test -v ./...
 
 install: build
 	@go install
@@ -14,10 +16,5 @@ build: clean
 	@gofmt -w .
 	@go build .
 
-test: build
-	@go test -v ./...
-
 run: build
-	-@rm hoge.zip
-	-@rm -rf bbbb
-	@./spm install tzmfreedom/spm/sample/repositories/no_dependencies -u ${SF_USERNAME} -p ${SF_PASSWORD} -d bbbb
+	@./spm install tzmfreedom/spm/sample/repositories/no_dependencies -u ${SF_USERNAME} -p ${SF_PASSWORD}
