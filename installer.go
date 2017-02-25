@@ -90,15 +90,11 @@ func (i *SalesforceInstaller) setClient() error {
 }
 
 func (i *SalesforceInstaller) Install() error {
-	return i.installToSalesforce()
-}
-
-func (i *SalesforceInstaller) installToSalesforce() error {
 	files, err := i.downloader.Download()
 	if err != nil {
 		return err
 	}
-	err = i.loadDependencies(i.uri)
+	err = i.loadDependencies(i.uri, files)
 
 	zc := NewZipConverter()
 	if files, err = zc.Convert(files); err != nil {
@@ -157,11 +153,17 @@ func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 	}
 }
 
-func (i *SalesforceInstaller) loadDependencies(uri string) error {
+func (i *SalesforceInstaller) loadDependencies(uri string, files []*File) error {
 	_, _, dir, _ := extractInstallParameter(uri)
 	targetFile := filepath.Join(dir, "package.yml")
-	_, err := os.Stat(targetFile)
-	if err != nil {
+	exists := false
+	for _, file := range files {
+		if file.Name == targetFile {
+			exists = true
+			break
+		}
+	}
+	if exists == false {
 		return nil
 	}
 	packageFile, err := readPackageFile(targetFile)
