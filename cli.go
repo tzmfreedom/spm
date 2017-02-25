@@ -10,7 +10,6 @@ import (
 type CLI struct {
 	Config *config
 	logger Logger
-	Error  error
 }
 
 type PackageFile struct {
@@ -27,10 +26,12 @@ func NewCli() *CLI {
 		logger: logger,
 		Config: &config{},
 	}
+	cli.OsExiter = func(c int) {}
+	cli.ErrWriter = &NullWriter{}
 	return c
 }
 
-func (c *CLI) Run(args []string) (err error) {
+func (c *CLI) Run(args []string) error {
 	app := cli.NewApp()
 	app.Name = "spm"
 
@@ -93,18 +94,18 @@ func (c *CLI) Run(args []string) (err error) {
 				downloader, _ := NewGitDownloader(c.logger, &gitConfig{})
 				installer, err := NewSalesforceInstaller(c.logger, downloader, c.Config)
 				if err != nil {
-					return nil
+					return err
 				}
 				urls, err := loadInstallUrls(c.Config.PackageFile, ctx.Args().First())
 				if err != nil {
-					return nil
+					return err
 				}
 				if len(urls) == 0 {
 					err = errors.New("Repository not specified")
-					return nil
+					return err
 				}
 				err = installer.Install(urls)
-				return nil
+				return err
 			},
 		},
 		{
@@ -160,22 +161,22 @@ func (c *CLI) Run(args []string) (err error) {
 			Action: func(ctx *cli.Context) error {
 				downloader, err := NewSalesforceDownloader(c.logger, c.Config)
 				if err != nil {
-					return nil
+					return err
 				}
 				files, err := downloader.Download(c.Config.PackageFile)
 				if err != nil {
-					return nil
+					return err
 				}
 				err = unzip(files[0].Body, c.Config.Directory)
 				if err != nil {
-					return nil
+					return err
 				}
-				return nil
+				return err
 			},
 		},
 	}
 
-	app.Run(args)
+	err := app.Run(args)
 	if err != nil {
 		c.logger.Error(err)
 	}
