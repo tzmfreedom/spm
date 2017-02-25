@@ -168,7 +168,7 @@ func dispatchDownloader(logger Logger, uri string) (Downloader, error) {
 	if r.MatchString(uri) {
 		return NewGitDownloader(logger, &gitConfig{uri: uri})
 	}
-	r = regexp.MustCompile(`^sf://([^/]+?):([^/]+)@([^/]+?)\?path=(.+)$`)
+	r = regexp.MustCompile(`^sf://([^/]*?):([^/]*)@([^/]+?)\?path=(.+)$`)
 	fmt.Println(uri)
 	if r.MatchString(uri) {
 		group := r.FindAllStringSubmatch(uri, -1)
