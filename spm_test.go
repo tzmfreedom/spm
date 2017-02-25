@@ -13,7 +13,7 @@ import (
 const (
 	FAILURE_PACKAGE_YML_BLANK      = "./test/fixture/blank.yml"
 	FAILURE_PACKAGE_YML_REPO_BLANK = "./test/fixture/repo-blank.yml"
-	SUCCESS_PACKAGE_TOML = "./test/fixture/package.toml"
+	SUCCESS_PACKAGE_TOML           = "./test/fixture/package.toml"
 )
 
 func before() (*CLI, *bytes.Buffer, *bytes.Buffer) {
@@ -98,7 +98,6 @@ func TestInstallFailurePackageYmlRepoBlank(t *testing.T) {
 	outString := outStream.String()
 	assert.Contains(t, outString, "Repository not specified")
 }
-
 
 func TestDownloadSuccess(t *testing.T) {
 	cli, outStream, _ := before()

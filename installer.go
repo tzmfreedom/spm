@@ -14,11 +14,10 @@ import (
 const DEFAULT_REPOSITORY string = "github.com"
 
 type Installer interface {
-	Initialize(config *Config) error
 	Install(urls []string) error
 }
 
-type Config struct {
+type config struct {
 	Username       string
 	Password       string
 	Endpoint       string
@@ -31,65 +30,68 @@ type Config struct {
 }
 
 type SalesforceInstaller struct {
-	Config   *Config
-	Client   *ForceClient
-	logger   Logger
-	urlStack []string
+	config     *config
+	client     *ForceClient
+	downloader Downloader
+	logger     Logger
+	urlStack   []string
 }
 
-func NewSalesforceInstaller(logger Logger) *SalesforceInstaller {
-	return &SalesforceInstaller{
-		logger:   logger,
-		urlStack: []string{},
+func NewSalesforceInstaller(logger Logger, downloader Downloader, config *config) (*SalesforceInstaller, error) {
+	i := &SalesforceInstaller{
+		logger:     logger,
+		config:     config,
+		downloader: downloader,
+		urlStack:   []string{},
 	}
+	err := i.init()
+	return i, err
 }
 
-func (i *SalesforceInstaller) Initialize(config *Config) (err error) {
-	i.Config = config
-	if i.Config.IsCloneOnly {
+func (i *SalesforceInstaller) init() (err error) {
+	if i.config.IsCloneOnly {
 		return nil
 	}
-	if i.Config.Username == "" {
+	if i.config.Username == "" {
 		return errors.New("Username is required")
 	}
-	if i.Config.Password == "" {
+	if i.config.Password == "" {
 		return errors.New("Password is required")
 	}
 
-	if !i.Config.IsCloneOnly {
+	if !i.config.IsCloneOnly {
 		err = i.setClient()
 	}
 	if err != nil {
 		return err
 	}
-	if i.Config.Directory == "" {
-		if i.Config.IsCloneOnly {
+	if i.config.Directory == "" {
+		if i.config.IsCloneOnly {
 			dir, err := os.Getwd()
 			if err != nil {
 				return err
 			}
-			i.Config.Directory = dir
+			i.config.Directory = dir
 		} else {
-			i.Config.Directory = os.TempDir()
+			i.config.Directory = os.TempDir()
 		}
 	}
 	return nil
 }
 
 func (i *SalesforceInstaller) setClient() error {
-	i.Client = NewForceClient(i.Config.Endpoint, i.Config.ApiVersion)
-	err := i.Client.Login(i.Config.Username, i.Config.Password)
+	i.client = NewForceClient(i.config.Endpoint, i.config.ApiVersion)
+	err := i.client.Login(i.config.Username, i.config.Password)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i *SalesforceInstaller) Install(urls []string) error {
-	for _, url := range urls {
-		uri, dir, target_dir, branch := extractInstallParameter(url)
+func (i *SalesforceInstaller) Install(uris []string) error {
+	for _, uri := range uris {
 
-		err := i.installToSalesforce(uri, dir, target_dir, branch)
+		err := i.installToSalesforce(uri)
 		if err != nil {
 			return err
 		}
@@ -97,28 +99,28 @@ func (i *SalesforceInstaller) Install(urls []string) error {
 	return nil
 }
 
-func (i *SalesforceInstaller) installToSalesforce(url string, directory string, targetDirectory string, branch string) error {
-	cloneDir := filepath.Join(i.Config.Directory, directory)
-	i.addUrlStack(url)
+func (i *SalesforceInstaller) installToSalesforce(uri string) error {
+	i.addUrlStack(uri)
 	defer i.popUrlStack()
-	i.logger.Infof("Clone repository from %s (branch: %s)", url, branch)
-	err := i.cloneFromRemoteRepository(cloneDir, url, branch, false)
+	files, err := i.downloader.Download(uri)
 	if err != nil {
 		return err
 	}
-	if i.Config.IsCloneOnly {
-		return nil
+	err = i.loadDependencies(uri)
+
+	zc := NewZipConverter()
+	if files, err = zc.Convert(files); err != nil {
+		return err
 	}
-	defer cleanTempDirectory(cloneDir)
-	targetDirAbsPath := filepath.Join(cloneDir, targetDirectory)
-	err = i.loadDependencies(targetDirAbsPath)
+
+	err = i.deployToSalesforce(files[0].Body)
 	if err != nil {
 		return err
 	}
-	err = i.deployToSalesforce(targetDirAbsPath)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -150,13 +152,9 @@ func (i *SalesforceInstaller) cloneFromRemoteRepository(directory string, url st
 	return
 }
 
-func (i *SalesforceInstaller) deployToSalesforce(directory string) error {
-	buf, err := zipDirectory(directory)
-	if err != nil {
-		return err
-	}
+func (i *SalesforceInstaller) deployToSalesforce(bytes []byte) error {
+	response, err := i.client.Deploy(bytes)
 
-	response, err := i.Client.Deploy(buf.Bytes())
 	if err != nil {
 		return err
 	}
@@ -173,19 +171,19 @@ func (i *SalesforceInstaller) deployToSalesforce(directory string) error {
 func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 	totalTime := 0
 	for {
-		time.Sleep(time.Duration(i.Config.PollSeconds) * time.Second)
+		time.Sleep(time.Duration(i.config.PollSeconds) * time.Second)
 		i.logger.Infof("%s: Check Deploy Result...", i.getTopStack())
 
-		response, err := i.Client.CheckDeployStatus(resultId)
+		response, err := i.client.CheckDeployStatus(resultId)
 		if err != nil {
 			return err
 		}
 		if response.Result.Done {
 			return nil
 		}
-		if i.Config.TimeoutSeconds != 0 {
-			totalTime += i.Config.PollSeconds
-			if totalTime > i.Config.TimeoutSeconds {
+		if i.config.TimeoutSeconds != 0 {
+			totalTime += i.config.PollSeconds
+			if totalTime > i.config.TimeoutSeconds {
 				i.logger.Errorf("%s: Deploy is timeout. Please check release status for the deployment", i.getTopStack())
 				return nil
 			}
@@ -193,17 +191,18 @@ func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 	}
 }
 
-func (i *SalesforceInstaller) loadDependencies(cloneDir string) error {
-	targetFile := filepath.Join(cloneDir, "package.yml")
+func (i *SalesforceInstaller) loadDependencies(uri string) error {
+	_, _, dir, _ := extractInstallParameter(uri)
+	targetFile := filepath.Join(dir, "package.yml")
 	_, err := os.Stat(targetFile)
 	if err != nil {
 		return nil
 	}
-	urls := []string{}
 	packageFile, err := readPackageFile(targetFile)
 	if err != nil {
 		return err
 	}
+	urls := []string{}
 	for _, pkg := range packageFile.Packages {
 		url, err := convertToUrl(pkg)
 		if err != nil {
@@ -211,7 +210,11 @@ func (i *SalesforceInstaller) loadDependencies(cloneDir string) error {
 		}
 		urls = append(urls, url)
 	}
-	return i.Install(urls)
+	di, err := NewSalesforceInstaller(i.logger, i.downloader, i.config)
+	if err != nil {
+		return err
+	}
+	return di.Install(urls)
 }
 
 func (i *SalesforceInstaller) addUrlStack(url string) error {

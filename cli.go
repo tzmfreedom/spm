@@ -8,11 +8,9 @@ import (
 )
 
 type CLI struct {
-	installer  Installer
-	downloader Downloader
-	Config     *Config
-	logger     Logger
-	Error      error
+	Config *config
+	logger Logger
+	Error  error
 }
 
 type PackageFile struct {
@@ -26,10 +24,8 @@ const (
 func NewCli() *CLI {
 	logger := NewSpmLogger(os.Stdout, os.Stderr)
 	c := &CLI{
-		installer:  NewSalesforceInstaller(logger),
-		downloader: NewSalesforceDownloader(logger),
-		logger:     logger,
-		Config:     &Config{},
+		logger: logger,
+		Config: &config{},
 	}
 	return c
 }
@@ -94,21 +90,20 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
+				downloader, _ := NewGitDownloader(c.logger, &gitConfig{})
+				installer, err := NewSalesforceInstaller(c.logger, downloader, c.Config)
+				if err != nil {
+					return nil
+				}
 				urls, err := loadInstallUrls(c.Config.PackageFile, ctx.Args().First())
 				if err != nil {
-					c.Error = err
 					return nil
 				}
 				if len(urls) == 0 {
-					c.Error = errors.New("Repository not specified")
+					err = errors.New("Repository not specified")
 					return nil
 				}
-				err = c.installer.Initialize(c.Config)
-				if err != nil {
-					c.Error = err
-					return nil
-				}
-				c.Error = c.installer.Install(urls)
+				err = installer.Install(urls)
 				return nil
 			},
 		},
@@ -153,7 +148,7 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 				cli.StringFlag{
 					Name:        "package, P",
-					Value:	     "./package.toml",
+					Value:       "./package.toml",
 					Destination: &c.Config.PackageFile,
 				},
 				cli.StringFlag{
@@ -163,19 +158,16 @@ func (c *CLI) Run(args []string) (err error) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				err = c.downloader.Initialize(c.Config)
+				downloader, err := NewSalesforceDownloader(c.logger, c.Config)
 				if err != nil {
-					c.Error = err
 					return nil
 				}
-				buf, err := c.downloader.Download()
+				files, err := downloader.Download(c.Config.PackageFile)
 				if err != nil {
-					c.Error = err
 					return nil
 				}
-				err = unzip(buf, c.Config.Directory)
+				err = unzip(files[0].Body, c.Config.Directory)
 				if err != nil {
-					c.Error = err
 					return nil
 				}
 				return nil
@@ -184,8 +176,8 @@ func (c *CLI) Run(args []string) (err error) {
 	}
 
 	app.Run(args)
-	if c.Error != nil {
-		c.logger.Error(c.Error)
+	if err != nil {
+		c.logger.Error(err)
 	}
-	return c.Error
+	return err
 }
