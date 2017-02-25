@@ -14,14 +14,24 @@ import (
 
 	"bytes"
 
+	"regexp"
+
 	"github.com/BurntSushi/toml"
 )
 
 type gitConfig struct {
+	uri string
+}
+type salesforceConfig struct {
+	username    string
+	password    string
+	endpoint    string
+	packagePath string
+	apiVersion  string
 }
 
 type Downloader interface {
-	Download(string) ([]*File, error)
+	Download() ([]*File, error)
 }
 
 type MetaPackageFile struct {
@@ -35,12 +45,12 @@ type Type struct {
 }
 
 type SalesforceDownloader struct {
-	config *config
+	config *salesforceConfig
 	client *ForceClient
 	logger Logger
 }
 
-func NewSalesforceDownloader(logger Logger, config *config) (*SalesforceDownloader, error) {
+func NewSalesforceDownloader(logger Logger, config *salesforceConfig) (*SalesforceDownloader, error) {
 	d := &SalesforceDownloader{
 		logger: logger,
 		config: config,
@@ -50,10 +60,10 @@ func NewSalesforceDownloader(logger Logger, config *config) (*SalesforceDownload
 }
 
 func (i *SalesforceDownloader) init() (err error) {
-	if i.config.Username == "" {
+	if i.config.username == "" {
 		return errors.New("Username is required")
 	}
-	if i.config.Password == "" {
+	if i.config.password == "" {
 		return errors.New("Password is required")
 	}
 
@@ -65,16 +75,16 @@ func (i *SalesforceDownloader) init() (err error) {
 }
 
 func (i *SalesforceDownloader) setClient() error {
-	i.client = NewForceClient(i.config.Endpoint, i.config.ApiVersion)
-	err := i.client.Login(i.config.Username, i.config.Password)
+	i.client = NewForceClient(i.config.endpoint, i.config.apiVersion)
+	err := i.client.Login(i.config.username, i.config.password)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i *SalesforceDownloader) Download(path string) ([]*File, error) {
-	buf, err := ioutil.ReadFile(path)
+func (i *SalesforceDownloader) Download() ([]*File, error) {
+	buf, err := ioutil.ReadFile(i.config.packagePath)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +126,8 @@ func NewGitDownloader(logger Logger, config *gitConfig) (*GitDownloader, error) 
 	}, nil
 }
 
-func (d *GitDownloader) Download(uri string) ([]*File, error) {
-	uri, _, _, branch := extractInstallParameter(uri)
+func (d *GitDownloader) Download() ([]*File, error) {
+	uri, _, _, branch := extractInstallParameter(d.config.uri)
 	d.logger.Infof("Clone repository from %s (branch: %s)", uri, branch)
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
@@ -151,4 +161,24 @@ func (d *GitDownloader) Download(uri string) ([]*File, error) {
 		return nil, err
 	}
 	return files, nil
+}
+
+func dispatchDownloader(logger Logger, uri string) (Downloader, error) {
+	r := regexp.MustCompile(`^https://([^/]+?)/([^/]+?)/([^/@]+?)(/([^@]+))?(\?([^/]+))?$`)
+	if r.MatchString(uri) {
+		return NewGitDownloader(logger, &gitConfig{uri: uri})
+	}
+	r = regexp.MustCompile(`^sf://([^/]+?):([^/]+)@([^/]+?)\?path=(.+)$`)
+	fmt.Println(uri)
+	if r.MatchString(uri) {
+		group := r.FindAllStringSubmatch(uri, -1)
+		return NewSalesforceDownloader(logger, &salesforceConfig{
+			username:    group[0][1],
+			password:    group[0][2],
+			endpoint:    group[0][3],
+			packagePath: group[0][4],
+			apiVersion:  "38.0",
+		})
+	}
+	return nil, errors.New("Invalid downloader")
 }

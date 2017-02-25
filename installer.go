@@ -6,15 +6,16 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"srcd.works/go-git.v4"
-	"srcd.works/go-git.v4/plumbing"
 )
 
 const DEFAULT_REPOSITORY string = "github.com"
 
 type Installer interface {
-	Install(urls []string) error
+	Install() error
+}
+
+type timeoutError struct {
+	error
 }
 
 type config struct {
@@ -34,15 +35,15 @@ type SalesforceInstaller struct {
 	client     *ForceClient
 	downloader Downloader
 	logger     Logger
-	urlStack   []string
+	uri        string
 }
 
-func NewSalesforceInstaller(logger Logger, downloader Downloader, config *config) (*SalesforceInstaller, error) {
+func NewSalesforceInstaller(logger Logger, downloader Downloader, config *config, uri string) (*SalesforceInstaller, error) {
 	i := &SalesforceInstaller{
 		logger:     logger,
 		config:     config,
 		downloader: downloader,
-		urlStack:   []string{},
+		uri:        uri,
 	}
 	err := i.init()
 	return i, err
@@ -88,25 +89,16 @@ func (i *SalesforceInstaller) setClient() error {
 	return nil
 }
 
-func (i *SalesforceInstaller) Install(uris []string) error {
-	for _, uri := range uris {
-
-		err := i.installToSalesforce(uri)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (i *SalesforceInstaller) Install() error {
+	return i.installToSalesforce()
 }
 
-func (i *SalesforceInstaller) installToSalesforce(uri string) error {
-	i.addUrlStack(uri)
-	defer i.popUrlStack()
-	files, err := i.downloader.Download(uri)
+func (i *SalesforceInstaller) installToSalesforce() error {
+	files, err := i.downloader.Download()
 	if err != nil {
 		return err
 	}
-	err = i.loadDependencies(uri)
+	err = i.loadDependencies(i.uri)
 
 	zc := NewZipConverter()
 	if files, err = zc.Convert(files); err != nil {
@@ -115,41 +107,17 @@ func (i *SalesforceInstaller) installToSalesforce(uri string) error {
 
 	err = i.deployToSalesforce(files[0].Body)
 	if err != nil {
+		if _, ok := err.(timeoutError); ok {
+			errors.New(fmt.Sprintf("%s: Deploy is timeout. Please check release status for the deployment", i.uri))
+		}
 		return err
 	}
+	i.logger.Infof("%s: Deploy is successful", i.uri)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (i *SalesforceInstaller) cloneFromRemoteRepository(directory string, url string, paramBranch string, retry bool) (err error) {
-	branch := "master"
-	if paramBranch != "" {
-		branch = paramBranch
-	}
-	_, err = git.PlainClone(directory, false, &git.CloneOptions{
-		URL:           url,
-		ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", branch)),
-		SingleBranch:  true,
-	})
-	if err != nil {
-		if err.Error() != "repository already exists" {
-			return
-		}
-		if retry == true {
-			return
-		}
-		i.logger.Warningf("repository non empty: %s", directory)
-		i.logger.Infof("remove directory: %s", directory)
-		err = cleanTempDirectory(directory)
-		if err != nil {
-			return
-		}
-		err = i.cloneFromRemoteRepository(directory, url, paramBranch, true)
-	}
-	return
 }
 
 func (i *SalesforceInstaller) deployToSalesforce(bytes []byte) error {
@@ -163,7 +131,6 @@ func (i *SalesforceInstaller) deployToSalesforce(bytes []byte) error {
 	if err != nil {
 		return err
 	}
-	i.logger.Infof("%s: Deploy is successful", i.getTopStack())
 
 	return nil
 }
@@ -172,7 +139,7 @@ func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 	totalTime := 0
 	for {
 		time.Sleep(time.Duration(i.config.PollSeconds) * time.Second)
-		i.logger.Infof("%s: Check Deploy Result...", i.getTopStack())
+		i.logger.Infof("%s: Check Deploy Result...", i.uri)
 
 		response, err := i.client.CheckDeployStatus(resultId)
 		if err != nil {
@@ -184,8 +151,7 @@ func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 		if i.config.TimeoutSeconds != 0 {
 			totalTime += i.config.PollSeconds
 			if totalTime > i.config.TimeoutSeconds {
-				i.logger.Errorf("%s: Deploy is timeout. Please check release status for the deployment", i.getTopStack())
-				return nil
+				return timeoutError{}
 			}
 		}
 	}
@@ -202,30 +168,20 @@ func (i *SalesforceInstaller) loadDependencies(uri string) error {
 	if err != nil {
 		return err
 	}
-	urls := []string{}
 	for _, pkg := range packageFile.Packages {
-		url, err := convertToUrl(pkg)
+		uri, err := convertToUrl(pkg)
 		if err != nil {
 			return err
 		}
-		urls = append(urls, url)
+		downloader, err := dispatchDownloader(i.logger, uri)
+		if err != nil {
+			return err
+		}
+		di, err := NewSalesforceInstaller(i.logger, downloader, i.config, uri)
+		if err != nil {
+			return err
+		}
+		di.Install()
 	}
-	di, err := NewSalesforceInstaller(i.logger, i.downloader, i.config)
-	if err != nil {
-		return err
-	}
-	return di.Install(urls)
-}
-
-func (i *SalesforceInstaller) addUrlStack(url string) error {
-	i.urlStack = append(i.urlStack, url)
 	return nil
-}
-
-func (i *SalesforceInstaller) getTopStack() string {
-	return i.urlStack[len(i.urlStack)-1]
-}
-
-func (i *SalesforceInstaller) popUrlStack() {
-	i.urlStack = i.urlStack[:len(i.urlStack)-1]
 }

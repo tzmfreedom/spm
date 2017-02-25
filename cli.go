@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/urfave/cli"
@@ -91,20 +92,26 @@ func (c *CLI) Run(args []string) error {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				downloader, _ := NewGitDownloader(c.logger, &gitConfig{})
-				installer, err := NewSalesforceInstaller(c.logger, downloader, c.Config)
+				uris, err := loadInstallUrls(c.Config.PackageFile, ctx.Args().First())
 				if err != nil {
 					return err
 				}
-				urls, err := loadInstallUrls(c.Config.PackageFile, ctx.Args().First())
-				if err != nil {
-					return err
-				}
-				if len(urls) == 0 {
+				if len(uris) == 0 {
 					err = errors.New("Repository not specified")
 					return err
 				}
-				err = installer.Install(urls)
+				for _, uri := range uris {
+					downloader, err := dispatchDownloader(c.logger, uri)
+					if err != nil {
+						return err
+					}
+
+					installer, err := NewSalesforceInstaller(c.logger, downloader, c.Config, uri)
+					if err != nil {
+						return err
+					}
+					err = installer.Install()
+				}
 				return err
 			},
 		},
@@ -113,22 +120,6 @@ func (c *CLI) Run(args []string) error {
 			Aliases: []string{"c"},
 			Usage:   "Download metadata from salesforce organization",
 			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:        "username, u",
-					Destination: &c.Config.Username,
-					EnvVar:      "SF_USERNAME",
-				},
-				cli.StringFlag{
-					Name:        "password, p",
-					Destination: &c.Config.Password,
-					EnvVar:      "SF_PASSWORD",
-				},
-				cli.StringFlag{
-					Name:        "endpoint, e",
-					Value:       "login.salesforce.com",
-					Destination: &c.Config.Endpoint,
-					EnvVar:      "SF_ENDPOINT",
-				},
 				cli.StringFlag{
 					Name:        "apiversion",
 					Value:       "38.0",
@@ -159,15 +150,23 @@ func (c *CLI) Run(args []string) error {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				downloader, err := NewSalesforceDownloader(c.logger, c.Config)
+				uri, err := convertToUrl(ctx.Args().First())
 				if err != nil {
 					return err
 				}
-				files, err := downloader.Download(c.Config.PackageFile)
+				downloader, err := dispatchDownloader(c.logger, uri)
 				if err != nil {
 					return err
 				}
-				err = unzip(files[0].Body, c.Config.Directory)
+				files, err := downloader.Download()
+				if err != nil {
+					return err
+				}
+				if _, ok := downloader.(*SalesforceDownloader); ok {
+					err = unzip(files[0].Body, c.Config.Directory)
+				} else {
+					fmt.Println("hogehoge")
+				}
 				if err != nil {
 					return err
 				}
