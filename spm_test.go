@@ -101,7 +101,7 @@ func TestInstallFailurePackageYmlRepoBlank(t *testing.T) {
 
 func TestDownloadSuccess(t *testing.T) {
 	cli, outStream, _ := before()
-	args := strings.Split(fmt.Sprintf("spm clone -u %s -p %s -P %s", os.Getenv("USERNAME"), os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
+	args := strings.Split(fmt.Sprintf("spm clone sf://%s:%s@login.salesforce.com?path=%s", os.Getenv("USERNAME"), os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
 	cli.Run(args)
 	outString := outStream.String()
 	assert.Contains(t, outString, "Start Retrieve Request...")
@@ -114,7 +114,7 @@ func TestDownloadSuccess(t *testing.T) {
 
 func TestDownloadFailureNoUsername(t *testing.T) {
 	cli, outStream, _ := before()
-	args := strings.Split(fmt.Sprintf("spm clone -p %s -P %s", os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
+	args := strings.Split(fmt.Sprintf("spm clone sf://:%s@login.salesforce.com?path=%s", os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
 	_ = cli.Run(args)
 	outString := outStream.String()
 	assert.Contains(t, outString, "Username is required")
@@ -122,7 +122,7 @@ func TestDownloadFailureNoUsername(t *testing.T) {
 
 func TestDownloadFailureNoPassword(t *testing.T) {
 	cli, outStream, _ := before()
-	args := strings.Split(fmt.Sprintf("spm clone -u %s -P %s", os.Getenv("USERNAME"), SUCCESS_PACKAGE_TOML), " ")
+	args := strings.Split(fmt.Sprintf("spm clone sf://%s:@login.salesforce.com?path=%s", os.Getenv("USERNAME"), SUCCESS_PACKAGE_TOML), " ")
 	_ = cli.Run(args)
 	outString := outStream.String()
 	assert.Contains(t, outString, "Password is required")
