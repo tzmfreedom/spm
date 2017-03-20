@@ -26,7 +26,6 @@ func (c *ZipConverter) Convert(files []*File) ([]*File, error) {
 	buf := new(bytes.Buffer)
 	zw := zip.NewWriter(buf)
 
-	files = []*File{}
 	for _, f := range files {
 		zf, err := zw.Create(f.Name)
 		if err != nil {
@@ -37,5 +36,5 @@ func (c *ZipConverter) Convert(files []*File) ([]*File, error) {
 		}
 	}
 	zw.Close()
-	return []*File{&File{Body: buf.Bytes()}}, nil
+	return []*File{{Body: buf.Bytes()}}, nil
 }

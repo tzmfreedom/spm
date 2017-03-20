@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -152,7 +153,7 @@ func (d *GitDownloader) Download() ([]*File, error) {
 		if _, err := b.ReadFrom(reader); err != nil {
 			return err
 		}
-		files = append(files, &File{Name: f.Name, Body: b.Bytes()})
+		files = append(files, &File{Name: filepath.Join("unpackaged", f.Name), Body: b.Bytes()})
 		return nil
 	})
 	if err != nil {
