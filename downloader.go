@@ -171,10 +171,10 @@ func dispatchDownloader(logger Logger, uri string) (Downloader, error) {
 	if r.MatchString(uri) {
 		return NewGitDownloader(logger, &gitConfig{uri: uri})
 	}
-	r = regexp.MustCompile(`^sf://([^/]*?):([^/]*)@([^/]+?)(\?.+)?$`)
+	r = regexp.MustCompile(`^sf://([^/]*?):([^/]*)@([^/]+?)(\?(.+))?$`)
 	if r.MatchString(uri) {
 		group := r.FindAllStringSubmatch(uri, -1)
-		path, version, err := parseQuery(group[0][4])
+		path, version, err := parseQuery(group[0][5])
 		if err != nil {
 			return nil, err
 		}
