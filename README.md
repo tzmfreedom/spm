@@ -11,16 +11,17 @@ Download binary file from [release page](https://github.com/tzmfreedom/spm/relea
 If you want to use latest version, execute following command.
 
 ```bash
-$ go get github.com/tzmfreedom/spm
+$ go get -u github.com/tzmfreedom/spm
 ```
 
 ## Usage
 
-```
+```bash
 $ spm [global options] command [command options] [arguments...]
 
 COMMANDS:
-     install, i  Install salesforce packages on public remote repository(i.g. github)
+     install, i  Install salesforce metadata on public remote repository(i.g. github) or salesforce org
+     clone, c    Download metadata from salesforce organization
      help, h     Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
@@ -29,7 +30,8 @@ GLOBAL OPTIONS:
 ```
 
 ### Install Package
-```
+
+```bash
 $ spm install [command options] [arguments...]
 
 OPTIONS:
@@ -42,44 +44,59 @@ OPTIONS:
    --packages value, -P value
 ```
 
-* Install package from remote repository
+* Install from remote repository
 
 ```bash
-$ spm install github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD}
+$ spm install https://github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD}
+
+example:
+$ spm install https://github.com/tzmfreedom/apex_tdclient -u hoge -p fuga
 ```
 
 You can specify repository with following format.
 ```
-{REMOTE_REPOSITORY_HOST}/{USER}/{REPOSITORY} # i.g. github.com/tzmfreedom/apex_tdclient
+{REMOTE_REPOSITORY_BASE}/{USER}/{REPOSITORY} # i.g. https://github.com/tzmfreedom/apex_tdclient
+{REMOTE_REPOSITORY_BASE}/{USER}/{REPOSITORY}/{SUB_DIRECTORY} # i.g. https://github.com/tzmfreedom/apex_tdclient/sample/repositories/dependencies
 {USER}/{REPOSITORY} # i.g. tzmfreedom/apex_tdclient
 {USER}/{REPOSITORY}/{SUB_DIRECTORY} # i.g. tzmfreedom/spm/sample/repositories/dependencies
 ```
 
+* Install from salesforce
 
-* Install packages from package.yml
+```bash
+$ spm install sf://{username}:{password}@{salesforce endpoint}?path={package file path}&version={version}
+
+example:
+$ spm install sf://hoge:fuga@login.salesforce.com?path=./package.toml&version=38.0
+```
+
+* Install from package.yml
 ```bash
 $ spm install -u {USERNAME} -p {PASSWORD} -P package.yml
 ```
 
-package.yml format
+Dependency package yaml format
 
 ```yaml
 packages:
-  - github.com/tzmfreedom/apex-util1
-  - github.com/tzmfreedom/apex-util2
-  - github.com/tzmfreedom/apex-util3
+  - tzmfreedom/apex-util1
+  - tzmfreedom/apex-util2
+  - tzmfreedom/apex-util3
 ```
 
 Sandbox
 
 ```bash
-$ spm install github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD} -e test.salesforce.com
+$ spm install https://github.com/{USER}/{REPOSITORY} -u {USERNAME} -p {PASSWORD} -e test.salesforce.com
 ```
 
 ## Download metadata from salesforce
 
 ```bash
-$ spm clone -u {USERNAME} -p {PASSWORD} -P {PACKAGE_FILE}
+$ spm clone sf://{username}:{password}@{salesforce endpoint}?path={package file path}&version={version}
+
+example:
+$ spm clone sf://hoge:fuga@login.salesforce.com
 ```
 
 ### Package File Format

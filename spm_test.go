@@ -13,7 +13,7 @@ import (
 const (
 	FAILURE_PACKAGE_YML_BLANK      = "./test/fixture/blank.yml"
 	FAILURE_PACKAGE_YML_REPO_BLANK = "./test/fixture/repo-blank.yml"
-	SUCCESS_PACKAGE_TOML = "./test/fixture/package.toml"
+	SUCCESS_PACKAGE_TOML           = "./test/fixture/package.toml"
 )
 
 func before() (*CLI, *bytes.Buffer, *bytes.Buffer) {
@@ -99,10 +99,9 @@ func TestInstallFailurePackageYmlRepoBlank(t *testing.T) {
 	assert.Contains(t, outString, "Repository not specified")
 }
 
-
 func TestDownloadSuccess(t *testing.T) {
 	cli, outStream, _ := before()
-	args := strings.Split(fmt.Sprintf("spm clone -u %s -p %s -P %s", os.Getenv("USERNAME"), os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
+	args := strings.Split(fmt.Sprintf("spm clone sf://%s:%s@login.salesforce.com?path=%s", os.Getenv("USERNAME"), os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
 	cli.Run(args)
 	outString := outStream.String()
 	assert.Contains(t, outString, "Start Retrieve Request...")
@@ -115,7 +114,7 @@ func TestDownloadSuccess(t *testing.T) {
 
 func TestDownloadFailureNoUsername(t *testing.T) {
 	cli, outStream, _ := before()
-	args := strings.Split(fmt.Sprintf("spm clone -p %s -P %s", os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
+	args := strings.Split(fmt.Sprintf("spm clone sf://:%s@login.salesforce.com?path=%s", os.Getenv("PASSWORD"), SUCCESS_PACKAGE_TOML), " ")
 	_ = cli.Run(args)
 	outString := outStream.String()
 	assert.Contains(t, outString, "Username is required")
@@ -123,7 +122,7 @@ func TestDownloadFailureNoUsername(t *testing.T) {
 
 func TestDownloadFailureNoPassword(t *testing.T) {
 	cli, outStream, _ := before()
-	args := strings.Split(fmt.Sprintf("spm clone -u %s -P %s", os.Getenv("USERNAME"), SUCCESS_PACKAGE_TOML), " ")
+	args := strings.Split(fmt.Sprintf("spm clone sf://%s:@login.salesforce.com?path=%s", os.Getenv("USERNAME"), SUCCESS_PACKAGE_TOML), " ")
 	_ = cli.Run(args)
 	outString := outStream.String()
 	assert.Contains(t, outString, "Password is required")

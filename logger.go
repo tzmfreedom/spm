@@ -60,3 +60,11 @@ func (l *SpmLogger) Reset(outStream io.Writer, errStream io.Writer) {
 	l.OutLogger.Out = outStream
 	l.ErrLogger.Out = errStream
 }
+
+type NullWriter struct {
+	Logger
+}
+
+func (w *NullWriter) Write(b []byte) (int, error) {
+	return 0, nil
+}
