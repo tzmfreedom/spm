@@ -28,13 +28,13 @@ dist-clean: clean
 	@rm -f $(NAME).tar.gz
 
 .PHONY: build
-build:
+build: deps
 	-@goimports -w .
 	@gofmt -w .
 	@go build $(LDFLAGS)
 
 .PHONY: cross-build
-cross-build: clean
+cross-build: deps
 	-@goimports -w .
 	@gofmt -w .
 	@for os in darwin linux windows; do \
