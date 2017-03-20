@@ -119,7 +119,9 @@ func (c *CLI) Run(args []string) error {
 					if err != nil {
 						return err
 					}
-					err = installer.Install()
+					if err = installer.Install(); err != nil {
+						return err
+					}
 				}
 				return err
 			},
