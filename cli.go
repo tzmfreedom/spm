@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/urfave/cli"
@@ -164,11 +163,6 @@ func (c *CLI) Run(args []string) error {
 				}
 				if _, ok := downloader.(*SalesforceDownloader); ok {
 					err = unzip(files[0].Body, c.Config.Directory)
-				} else {
-					fmt.Println("hogehoge")
-				}
-				if err != nil {
-					return err
 				}
 				return err
 			},
