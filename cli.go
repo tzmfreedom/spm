@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/urfave/cli"
@@ -16,8 +17,13 @@ type PackageFile struct {
 	Packages []string
 }
 
+var (
+	Version  string
+	Revision string
+)
+
 const (
-	APP_VERSION string = "0.1.1"
+	DEFAULT_API_VERSION = "38.0"
 )
 
 func NewCli() *CLI {
@@ -32,16 +38,20 @@ func NewCli() *CLI {
 }
 
 func (c *CLI) Run(args []string) error {
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Printf("version=%s revision=%s\n", c.App.Version, Revision)
+	}
+
 	app := cli.NewApp()
 	app.Name = "spm"
 
 	app.Usage = "Salesforce Package Manager"
-	app.Version = APP_VERSION
+	app.Version = Version
 	app.Commands = []cli.Command{
 		{
 			Name:    "install",
 			Aliases: []string{"i"},
-			Usage:   "Install salesforce packages on public remote repository(i.g. github)",
+			Usage:   "Install salesforce metadata on public remote repository(i.g. github) or salesforce org",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:        "username, u",
