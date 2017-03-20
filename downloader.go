@@ -1,20 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"time"
 
-	"srcd.works/go-git.v4"
-	"srcd.works/go-git.v4/plumbing"
-	"srcd.works/go-git.v4/plumbing/object"
-	"srcd.works/go-git.v4/storage/memory"
-
-	"bytes"
-
-	"regexp"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
 
 	"github.com/BurntSushi/toml"
 )
@@ -168,7 +166,7 @@ func dispatchDownloader(logger Logger, uri string) (Downloader, error) {
 	if r.MatchString(uri) {
 		return NewGitDownloader(logger, &gitConfig{uri: uri})
 	}
-	r = regexp.MustCompile(`^sf://([^/]*?):([^/]*)@([^/]+?)\?path=(.+)$`)
+	r = regexp.MustCompile(`^sf://([^/]*?):([^/]*)@([^/]+?)(\?path=(.+)&version=(.+))?$`)
 	if r.MatchString(uri) {
 		group := r.FindAllStringSubmatch(uri, -1)
 		return NewSalesforceDownloader(logger, &salesforceConfig{
