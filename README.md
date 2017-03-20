@@ -14,6 +14,13 @@ If you want to use latest version, execute following command.
 $ go get -u github.com/tzmfreedom/spm
 ```
 
+If you use macOS, home brew is available for installation.
+
+```bash
+$ brew tap tzmfreedom/spm
+$ brew install spm
+```
+
 ## Usage
 
 ```bash
