@@ -94,11 +94,16 @@ func (i *SalesforceInstaller) Install() error {
 	if err != nil {
 		return err
 	}
-	err = i.loadDependencies(i.uri, files)
-
-	zc := NewZipConverter()
-	if files, err = zc.Convert(files); err != nil {
+	if err = i.loadDependencies(i.uri, files); err != nil {
 		return err
+	}
+
+	if _, ok := i.downloader.(*GitDownloader); ok {
+		zc := NewZipConverter()
+		files, err = zc.Convert(files)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = i.deployToSalesforce(files[0].Body)
