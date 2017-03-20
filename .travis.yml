@@ -1,4 +1,7 @@
 language: go
 
 install:
- - go get -t ./...
+  - go get github.com/Masterminds/glide
+script:
+  - make deps
+  - make test
