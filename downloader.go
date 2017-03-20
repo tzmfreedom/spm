@@ -170,16 +170,38 @@ func dispatchDownloader(logger Logger, uri string) (Downloader, error) {
 	if r.MatchString(uri) {
 		return NewGitDownloader(logger, &gitConfig{uri: uri})
 	}
-	r = regexp.MustCompile(`^sf://([^/]*?):([^/]*)@([^/]+?)(\?path=(.+)&version=(.+))?$`)
+	r = regexp.MustCompile(`^sf://([^/]*?):([^/]*)@([^/]+?)(\?.+)?$`)
 	if r.MatchString(uri) {
 		group := r.FindAllStringSubmatch(uri, -1)
+		path, version, err := parseQuery(group[0][4])
+		if err != nil {
+			return nil, err
+		}
 		return NewSalesforceDownloader(logger, &salesforceConfig{
 			username:    group[0][1],
 			password:    group[0][2],
 			endpoint:    group[0][3],
-			packagePath: group[0][4],
-			apiVersion:  "38.0",
+			packagePath: path,
+			apiVersion:  version,
 		})
 	}
 	return nil, errors.New("Invalid downloader")
+}
+
+func parseQuery(q string) (path string, version string, err error) {
+	m, err := url.ParseQuery(q)
+	if err != nil {
+		return
+	}
+	if len(m["path"]) == 0 || m["path"][0] == "" {
+		path = "./package.toml"
+	} else {
+		path = m["path"][0]
+	}
+	if len(m["version"]) == 0 || m["version"][0] == "" {
+		version = DEFAULT_API_VERSION
+	} else {
+		version = m["version"][0]
+	}
+	return
 }
