@@ -12,7 +12,7 @@ test: glide
 
 .PHONY: install
 install: build
-	@go install ./goroon
+	@go install
 
 .PHONY: uninstall
 uninstall:
@@ -28,15 +28,15 @@ dist-clean: clean
 	@rm -f $(NAME).tar.gz
 
 .PHONY: build
-build: deps
-	-@goimports -w .
-	@gofmt -w .
+build: 
+	-@goimports -w $(SRCS)
+	@gofmt -w $(SRCS)
 	@go build $(LDFLAGS)
 
 .PHONY: cross-build
 cross-build: deps
-	-@goimports -w .
-	@gofmt -w .
+	-@goimports -w $(SRCS)
+	@gofmt -w $(SRCS)
 	@for os in darwin linux windows; do \
 	    for arch in amd64 386; do \
 	        GOOS=$$os GOARCH=$$arch CGO_ENABLED=0 go build -a -tags netgo \
@@ -56,7 +56,7 @@ deps: glide
 
 .PHONY: bin/$(NAME) 
 bin/$(NAME): $(SRCS)
-	go build -a -tags netgo -installsuffix netgo $(LDFLAGS) -o bin/$(NAME) ./goroon
+	go build -a -tags netgo -installsuffix netgo $(LDFLAGS) -o bin/$(NAME)
 
 .PHONY: dist
 dist:
