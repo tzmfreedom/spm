@@ -1,6 +1,6 @@
 NAME := spm
 SRCS := $(shell find . -type d -name vendor -prune -o -type f -name "*.go" -print)
-VERSION := 0.1.2
+VERSION := 0.2.0
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -ldflags="-s -w -X \"main.Version=$(VERSION)\" -X \"main.Revision=$(REVISION)\"" 
 
