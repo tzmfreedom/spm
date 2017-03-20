@@ -54,10 +54,10 @@ func (i *SalesforceInstaller) init() (err error) {
 		return nil
 	}
 	if i.config.Username == "" {
-		return errors.New("Username is required")
+		return errors.New("[Installer] Username is required")
 	}
 	if i.config.Password == "" {
-		return errors.New("Password is required")
+		return errors.New("[Installer] Password is required")
 	}
 
 	if !i.config.IsCloneOnly {
@@ -154,7 +154,10 @@ func (i *SalesforceInstaller) checkDeployStatus(resultId *ID) error {
 }
 
 func (i *SalesforceInstaller) loadDependencies(uri string, files []*File) error {
-	_, _, dir, _ := extractInstallParameter(uri)
+	_, _, dir, _, err := extractInstallParameter(uri)
+	if err != nil {
+		return nil
+	}
 	targetFile := filepath.Join(dir, "package.yml")
 	exists := false
 	for _, file := range files {

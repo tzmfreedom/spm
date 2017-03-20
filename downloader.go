@@ -58,32 +58,32 @@ func NewSalesforceDownloader(logger Logger, config *salesforceConfig) (*Salesfor
 	return d, err
 }
 
-func (i *SalesforceDownloader) init() (err error) {
-	if i.config.username == "" {
-		return errors.New("Username is required")
+func (d *SalesforceDownloader) init() (err error) {
+	if d.config.username == "" {
+		return errors.New("[Downloader] Username is required")
 	}
-	if i.config.password == "" {
-		return errors.New("Password is required")
+	if d.config.password == "" {
+		return errors.New("[Downloader] Password is required")
 	}
 
-	err = i.setClient()
+	err = d.setClient()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i *SalesforceDownloader) setClient() error {
-	i.client = NewForceClient(i.config.endpoint, i.config.apiVersion)
-	err := i.client.Login(i.config.username, i.config.password)
+func (d *SalesforceDownloader) setClient() error {
+	d.client = NewForceClient(d.config.endpoint, d.config.apiVersion)
+	err := d.client.Login(d.config.username, d.config.password)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i *SalesforceDownloader) Download() ([]*File, error) {
-	buf, err := ioutil.ReadFile(i.config.packagePath)
+func (d *SalesforceDownloader) Download() ([]*File, error) {
+	buf, err := ioutil.ReadFile(d.config.packagePath)
 	if err != nil {
 		return nil, err
 	}
@@ -92,22 +92,22 @@ func (i *SalesforceDownloader) Download() ([]*File, error) {
 	if err != nil {
 		return nil, err
 	}
-	i.logger.Info("Start Retrieve Request...")
-	r, err := i.client.Retrieve(createRetrieveRequest(packages))
+	d.logger.Info("Start Retrieve Request...")
+	r, err := d.client.Retrieve(createRetrieveRequest(packages))
 	if err != nil {
 		return nil, err
 	}
 	for {
 		time.Sleep(2 * time.Second)
-		i.logger.Info("Check Retrieve Status...")
-		ret_res, err := i.client.CheckRetrieveStatus(r.Result.Id)
+		d.logger.Info("Check Retrieve Status...")
+		ret_res, err := d.client.CheckRetrieveStatus(r.Result.Id)
 		if err != nil {
 			return nil, err
 		}
 		if ret_res.Result.Done {
 			zb := make([]byte, len(ret_res.Result.ZipFile))
 			_, err = base64.StdEncoding.Decode(zb, ret_res.Result.ZipFile)
-			return []*File{&File{Body: zb}}, err
+			return []*File{{Body: zb}}, err
 		}
 	}
 	return nil, nil // Todo: error handling
@@ -126,7 +126,10 @@ func NewGitDownloader(logger Logger, config *gitConfig) (*GitDownloader, error) 
 }
 
 func (d *GitDownloader) Download() ([]*File, error) {
-	uri, _, _, branch := extractInstallParameter(d.config.uri)
+	uri, _, _, branch, err := extractInstallParameter(d.config.uri)
+	if err != nil {
+		return nil, err
+	}
 	d.logger.Infof("Clone repository from %s (branch: %s)", uri, branch)
 
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{

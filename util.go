@@ -14,9 +14,13 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func extractInstallParameter(url string) (uri string, dir string, target_dir string, branch string) {
+func extractInstallParameter(url string) (uri string, dir string, target_dir string, branch string, err error) {
 	r := regexp.MustCompile(`^(https://([^/]+?)/([^/]+?)/([^/@]+?))(/([^@]+))?(@([^/]+))?$`)
 	group := r.FindAllStringSubmatch(url, -1)
+	if len(group) == 0 {
+		err = errors.New("incorrect uri")
+		return
+	}
 	uri = group[0][1]
 	dir = group[0][4]
 	target_dir = group[0][6]
