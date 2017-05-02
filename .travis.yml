@@ -1,7 +1,22 @@
 language: go
-
 install:
-  - go get github.com/Masterminds/glide
+- sudo add-apt-repository ppa:masterminds/glide -y
+- sudo apt-get update -q
+- sudo apt-get install glide -y
 script:
-  - make deps
-  - make test
+- make deps
+- make test
+before_deploy:
+- make cross-build
+- make dist
+deploy:
+  provider: releases
+  api_key:
+    secure: lY7gQnJAI/CSRcoTS1SaYpjimLMTdSO3OCC2mTm7sckqrGpU7iefF7+1wkof8fGDxAGEP+r6QjvcRatF/ehsxSNR1FtfjiFGqchzQfYRiJapA4TEZPtdvbyC/xE1i7UWUQBGZsiD8KGN7Wr3ymcDf/MtI9c1F6g7rUTFrHfHL8WvQNf6cnSwrD3J009G4uroB63l0vVkF2havBjZUScN2rZXNrivWSlmFhijADo9bB6NIzet/5nOJHHHs1X/tqkunJ6qlfy67MET/cjfYfLI9s/jwVXZHkQYg3xKMKk0C30wOx+lU4GHuf31VpzZmO4Ro9oXxVJqOeHpI8sSZB5s8oYMklUhpAN7DOalI/7ffAOOR7L1maJ14YseIoRO6OpUs7+/PgrgRk8RFu5ar8B+ewUONQd63jqPp8mKudnap5z9+pMir81w630ScUcgUtfCyfoVcJOrCeRALWTJjnE9Hx2WZxkOsdhIWnV+tEQXoK2lRT9y5CUe53NxxL0XU7II9i83k8VG58+kXtHspd4tw96KhRJ/OKI4PisCCdXvuCMECtqdIORce0NK1gsXad46AYZT+tkcWQ/TCnvRrIvLnjNeO3cZzAi9RqztH2IKUDB3zzsBqBri3ZAxnY8CW8qz70wI5sFEHTOGSz6WHS6b252fPUQsba1+QyfNh9GNus8=
+  skip_cleanup: true
+  overwrite: true
+  file_glob: true
+  file: dist/*.{tar.gz}
+  on:
+    repo: tzmfreedom/spm
+    tags: true
