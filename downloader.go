@@ -127,7 +127,7 @@ func NewGitDownloader(logger Logger, config *gitConfig) (*GitDownloader, error) 
 }
 
 func (d *GitDownloader) Download() ([]*File, error) {
-	uri, _, _, branch, err := extractInstallParameter(d.config.uri)
+	uri, _, dir, branch, err := extractInstallParameter(d.config.uri)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,11 @@ func (d *GitDownloader) Download() ([]*File, error) {
 		if _, err := b.ReadFrom(reader); err != nil {
 			return err
 		}
-		files = append(files, &File{Name: filepath.Join("unpackaged", f.Name), Body: b.Bytes()})
+		rep := regexp.MustCompile(`^` + dir + "/")
+		if dir == "" || rep.MatchString(f.Name) {
+			fname := rep.ReplaceAllString(f.Name, "")
+			files = append(files, &File{Name: filepath.Join("unpackaged", fname), Body: b.Bytes()})
+		}
 		return nil
 	})
 	if err != nil {
