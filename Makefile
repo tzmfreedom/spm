@@ -1,8 +1,9 @@
 NAME := spm
 SRCS := $(shell find . -type d -name vendor -prune -o -type f -name "*.go" -print)
-VERSION := 0.2.0
+VERSION := 0.2.1
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -ldflags="-s -w -X \"main.Version=$(VERSION)\" -X \"main.Revision=$(REVISION)\"" 
+DIST_DIRS := find * -type d -exec
 
 .DEFAULT_GOAL := bin/$(NAME) 
 
@@ -14,18 +15,11 @@ test: glide
 install: build
 	@go install
 
-.PHONY: uninstall
-uninstall:
-
 .PHONY: clean
 clean:
 	@rm -rf bin/*
 	@rm -rf vendor/*
 	@rm -rf dist/*
-
-.PHONY: dist-clean
-dist-clean: clean
-	@rm -f $(NAME).tar.gz
 
 .PHONY: build
 build: 
@@ -40,7 +34,7 @@ cross-build: deps
 	@for os in darwin linux windows; do \
 	    for arch in amd64 386; do \
 	        GOOS=$$os GOARCH=$$arch CGO_ENABLED=0 go build -a -tags netgo \
-	        -installsuffix netgo $(LDFLAGS) -o dist/$(NAME)-$$os-$$arch; \
+	        -installsuffix netgo $(LDFLAGS) -o dist/$$os-$$arch/$(NAME); \
 	    done; \
 	done
 
@@ -60,4 +54,9 @@ bin/$(NAME): $(SRCS)
 
 .PHONY: dist
 dist:
-	@tar czfh $(NAME).tar.gz $(shell git ls-files)
+	@cd dist && \
+	$(DIST_DIRS) cp ../LICENSE {} \; && \
+	$(DIST_DIRS) cp ../README.md {} \; && \
+	$(DIST_DIRS) cp ../completions/zsh/_$(NAME) {} \; && \
+	$(DIST_DIRS) tar zcf $(NAME)-$(VERSION)-{}.tar.gz {} \;
+
