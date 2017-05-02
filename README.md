@@ -6,19 +6,25 @@ Salesforce Package Manager
 
 ## Install
 
-Download binary file from [release page](https://github.com/tzmfreedom/spm/releases) and copy it to executable path.
-
-If you want to use latest version, execute following command.
-
+For Linux and macOS user
 ```bash
-$ go get -u github.com/tzmfreedom/spm
+$ curl -sL http://install.freedom-man.com/spm | bash
+```
+
+If you want to install zsh completion, add --zsh-completion option
+```bash
+$ curl -sL http://install.freedom-man.com/spm | bash -s -- --zsh-completion
 ```
 
 If you use macOS, home brew is available for installation.
-
 ```bash
 $ brew tap tzmfreedom/spm
 $ brew install spm
+```
+
+If you want to use latest version, execute following command.
+```bash
+$ go get -u github.com/tzmfreedom/spm
 ```
 
 ## Usage
