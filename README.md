@@ -22,10 +22,18 @@ $ brew tap tzmfreedom/spm
 $ brew install spm
 ```
 
+You can use docker to use spm command.
+```bash
+$ docker run tzmfree/spm install {REPO} u {USERNAME] -p {PASSWORD}
+
+```
+
 If you want to use latest version, execute following command.
 ```bash
 $ go get -u github.com/tzmfreedom/spm
 ```
+
+For Windows user, use Linux virtual machine, such as docker or vagrant.
 
 ## Usage
 
