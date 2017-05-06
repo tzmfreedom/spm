@@ -12,8 +12,8 @@ test: glide
 	@go test -cover -v `glide novendor`
 
 .PHONY: install
-install: build
-	@go install
+install: bin/$(NAME)
+	mv bin/$(NAME) /usr/local/bin/$(NAME)
 
 .PHONY: clean
 clean:
@@ -21,11 +21,14 @@ clean:
 	@rm -rf vendor/*
 	@rm -rf dist/*
 
-.PHONY: build
-build: 
+.PHONY: format
+format: import
 	-@goimports -w $(SRCS)
 	@gofmt -w $(SRCS)
-	@go build $(LDFLAGS)
+
+.PHONY: import
+import:
+	go get golang.org/x/tools/cmd/goimports
 
 .PHONY: cross-build
 cross-build: deps
@@ -60,3 +63,6 @@ dist:
 	$(DIST_DIRS) cp ../completions/zsh/_$(NAME) {} \; && \
 	$(DIST_DIRS) tar zcf $(NAME)-$(VERSION)-{}.tar.gz {} \;
 
+.PHONY: dist
+docker-build:
+	docker build . -t spm
