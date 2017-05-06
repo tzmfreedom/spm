@@ -24,7 +24,7 @@ $ brew install spm
 
 You can use docker to use spm command.
 ```bash
-$ docker run tzmfree/spm install {REPO} u {USERNAME] -p {PASSWORD}
+$ docker run --rm tzmfree/spm install {REPO} -u {USERNAME] -p {PASSWORD}
 
 ```
 
