@@ -195,3 +195,55 @@ func (i *SalesforceInstaller) loadDependencies(uri string, files []*File) error 
 	}
 	return nil
 }
+
+func (i *SalesforceInstaller) Uninstall() error {
+	files, err := i.downloader.Download()
+	if err != nil {
+		return err
+	}
+
+	files, err = createDestructiveChanges(files)
+	if err != nil {
+		return err
+	}
+
+	if _, ok := i.downloader.(*GitDownloader); ok {
+		zc := NewZipConverter()
+		files, err = zc.Convert(files)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = i.deployToSalesforce(files[0].Body)
+	if err != nil {
+		if _, ok := err.(timeoutError); ok {
+			errors.New(fmt.Sprintf("%s: Deploy is timeout. Please check release status for the deployment", i.uri))
+		}
+		return err
+	}
+	i.logger.Infof("%s: Deploy is successful", i.uri)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createDestructiveChanges(files []*File) ([]*File, error) {
+	for _, f := range files {
+		if f.Name == "unpackaged/package.xml" {
+			return []*File{
+				{
+					Name: "unpackaged/package.xml",
+					Body: []byte("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Package xmlns=\"http://soap.sforce.com/2006/04/metadata\"><version>39.0</version></Package>"),
+				},
+				{
+					Name: "unpackaged/destructiveChanges.xml",
+					Body: f.Body,
+				},
+			}, nil
+		}
+	}
+	return nil, errors.New("Package.xml Not Found")
+}
