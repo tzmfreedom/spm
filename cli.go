@@ -127,6 +127,76 @@ func (c *CLI) Run(args []string) error {
 			},
 		},
 		{
+			Name:    "uninstall",
+			Aliases: []string{"u"},
+			Usage:   "Uninstall salesforce metadata on public remote repository(i.g. github) or salesforce org",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:        "username, u",
+					Destination: &c.Config.Username,
+					EnvVar:      "SF_USERNAME",
+				},
+				cli.StringFlag{
+					Name:        "password, p",
+					Destination: &c.Config.Password,
+					EnvVar:      "SF_PASSWORD",
+				},
+				cli.StringFlag{
+					Name:        "endpoint, e",
+					Value:       "login.salesforce.com",
+					Destination: &c.Config.Endpoint,
+					EnvVar:      "SF_ENDPOINT",
+				},
+				cli.StringFlag{
+					Name:        "apiversion",
+					Value:       "38.0",
+					Destination: &c.Config.ApiVersion,
+					EnvVar:      "SF_APIVERSION",
+				},
+				cli.IntFlag{
+					Name:        "pollSeconds",
+					Value:       5,
+					Destination: &c.Config.PollSeconds,
+					EnvVar:      "SF_POLLSECONDS",
+				},
+				cli.IntFlag{
+					Name:        "timeoutSeconds",
+					Value:       0,
+					Destination: &c.Config.TimeoutSeconds,
+					EnvVar:      "SF_TIMEOUTSECONDS",
+				},
+				cli.StringFlag{
+					Name:        "packages, P",
+					Destination: &c.Config.PackageFile,
+				},
+			},
+			Action: func(ctx *cli.Context) error {
+				uris, err := loadInstallUrls(c.Config.PackageFile, ctx.Args().First())
+				if err != nil {
+					return err
+				}
+				if len(uris) == 0 {
+					err = errors.New("Repository not specified")
+					return err
+				}
+				for _, uri := range uris {
+					downloader, err := dispatchDownloader(c.logger, uri)
+					if err != nil {
+						return err
+					}
+
+					installer, err := NewSalesforceInstaller(c.logger, downloader, c.Config, uri)
+					if err != nil {
+						return err
+					}
+					if err = installer.Uninstall(); err != nil {
+						return err
+					}
+				}
+				return err
+			},
+		},
+		{
 			Name:    "clone",
 			Aliases: []string{"c"},
 			Usage:   "Download metadata from salesforce organization",
