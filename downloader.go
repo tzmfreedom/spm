@@ -171,7 +171,7 @@ func (d *GitDownloader) Download() ([]*File, error) {
 }
 
 func dispatchDownloader(logger Logger, uri string) (Downloader, error) {
-	r := regexp.MustCompile(`^https://([^/]+?)/([^/]+?)/([^/@]+?)(/([^@]+))?(\?([^/]+))?$`)
+	r := regexp.MustCompile(`^https://([^/]+?)/([^/]+?)/([^/@]+?)(/([^@]+))?(@[^/]+)?(\?([^/]+))?$`)
 	if r.MatchString(uri) {
 		return NewGitDownloader(logger, &gitConfig{uri: uri})
 	}
