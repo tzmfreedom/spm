@@ -1,10 +1,9 @@
 language: go
+before_install:
+- curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 install:
-- sudo add-apt-repository ppa:masterminds/glide -y
-- sudo apt-get update -q
-- sudo apt-get install glide -y
-script:
 - make deps
+script:
 - make test
 before_deploy:
 - make cross-build
